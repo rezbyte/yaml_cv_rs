@@ -1,4 +1,4 @@
-//! A rust port of kaityo256's yaml_cv
+//! A rust port of kaityo256's ``yaml_cv``
 
 #![warn(
     elided_lifetimes_in_paths,
