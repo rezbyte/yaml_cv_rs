@@ -31,7 +31,6 @@
     clippy::integer_division,
     clippy::let_underscore_must_use,
     clippy::map_err_ignore,
-    clippy::missing_docs_in_private_items,
     clippy::mixed_read_write_in_expression,
     clippy::mod_module_files,
     clippy::multiple_inherent_impl,
@@ -67,9 +66,18 @@
 #![forbid(unsafe_code)]
 
 use clap::Parser;
-mod args;
+use serde_yaml::from_str;
+use std::fs::read_to_string;
 
-fn main() {
-    let __cli = args::Args::parse();
-    println!("Hello, world!");
+mod args;
+mod yaml;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cli = args::Args::parse();
+
+    let raw_input_file = read_to_string(cli.input)?;
+    let input_file: yaml::YAMLArgs = from_str(&raw_input_file)?;
+
+    println!("Hello, {}!", input_file.name_kana);
+    Ok(())
 }
