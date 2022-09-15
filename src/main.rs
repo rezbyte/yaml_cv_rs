@@ -66,6 +66,10 @@
 )]
 #![forbid(unsafe_code)]
 
+use clap::Parser;
+mod args;
+
 fn main() {
+    let __cli = args::Args::parse();
     println!("Hello, world!");
 }
