@@ -8,15 +8,15 @@ use std::path::PathBuf;
 pub(crate) struct Args {
     /// Path to the input file in YAML format.
     #[clap(short, long, value_parser, default_value = "data.yaml")]
-    input: PathBuf,
+    pub(crate) input: PathBuf,
 
     /// Path to the styling file.
     #[clap(short, long, value_parser, default_value = "style.txt")]
-    style: PathBuf,
+    pub(crate) style: PathBuf,
 
     /// Path to output the final PDF file to.
     #[clap(short, long, value_parser, default_value = "output.pdf")]
-    output: PathBuf,
+    pub(crate) output: PathBuf,
 }
 
 #[cfg(test)]
