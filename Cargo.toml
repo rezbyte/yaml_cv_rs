@@ -1,0 +1,10 @@
+[package]
+name = "yaml_cv_rs"
+version = "0.1.0"
+edition = "2021"
+description = "A rust port of kaityo256's yaml_cv."
+repository = "https://github.com/rezbyte/yaml_cv_rs"
+license = "MIT"
+categories = ["command-line-utilities"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
