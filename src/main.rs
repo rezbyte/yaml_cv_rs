@@ -102,6 +102,9 @@ fn main() -> Result<()> {
             Command::NewPage => {
                 println!("New page was found!");
             }
+            Command::TextBox(textbox) => {
+                println!("The text box '{}' was found!", textbox);
+            }
         }
     }
 

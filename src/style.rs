@@ -127,6 +127,19 @@ pub(crate) struct TextBox {
     pub(crate) font_size: Option<f32>,
 }
 
+impl Display for TextBox {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "({}, {}, {}, {})",
+            self.position,
+            self.size,
+            self.value,
+            self.font_size.unwrap_or(12.0),
+        )
+    }
+}
+
 /// A set of procedurally generated lines.
 pub(crate) struct MultiLines {
     pub(crate) start_position: Point,
@@ -252,12 +265,41 @@ fn parse_photo(
     Ok(Photo { position, size })
 }
 
+fn parse_textbox(
+    raw_pos_x: &str,
+    raw_pos_y: &str,
+    raw_width: &str,
+    raw_height: &str,
+    raw_value: &str,
+    raw_font_size: Option<&&str>,
+) -> Result<TextBox> {
+    let position = Point {
+        x: parse_mm(raw_pos_x)?,
+        y: parse_mm(raw_pos_y)?,
+    };
+    let size = Size {
+        width: parse_mm(raw_width)?,
+        height: parse_mm(raw_height)?,
+    };
+    let mut font_size: Option<f32> = None;
+    if let Some(raw_option) = raw_font_size {
+        font_size = Some(parse_option("font_size", raw_option)?);
+    };
+    Ok(TextBox {
+        position,
+        size,
+        value: raw_value.to_owned(),
+        font_size,
+    })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
     Box(Box),
     Photo(Photo),
     NewPage,
+    TextBox(TextBox),
 }
 
 pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
@@ -320,6 +362,17 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
             }
             Some(&"new_page") => {
                 items.push(Command::NewPage);
+            }
+            Some(&"textbox") => {
+                let raw_pos_x = split_line.get(1).expect("Missing x position for text box!");
+                let raw_pos_y = split_line.get(2).expect("Missing y position for text box!");
+                let raw_width = split_line.get(3).expect("Missing width for text box!");
+                let raw_height = split_line.get(4).expect("Missing height for text box!");
+                let raw_value = split_line.get(5).expect("Missing value for text box!");
+                let raw_option = split_line.get(6);
+                items.push(Command::TextBox(parse_textbox(
+                    raw_pos_x, raw_pos_y, raw_width, raw_height, raw_value, raw_option,
+                )?));
             }
             _ => return Err(anyhow!("Unsupported command!")),
         }
