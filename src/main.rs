@@ -65,19 +65,32 @@
 )]
 #![forbid(unsafe_code)]
 
+use anyhow::Result;
 use clap::Parser;
 use serde_yaml::from_str;
 use std::fs::read_to_string;
+use style::Command;
 
 mod args;
+mod style;
 mod yaml;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     let cli = args::Args::parse();
 
     let raw_input_file = read_to_string(cli.input)?;
     let input_file: yaml::YAMLArgs = from_str(&raw_input_file)?;
 
+    let style_file = style::read(cli.style);
+
     println!("Hello, {}!", input_file.name_kana);
+
+    let first_string = style_file?
+        .pop()
+        .expect("Expected style file to have contents");
+    if let Command::Text(text) = first_string {
+        println!("The string '{}' was found!", text.value);
+    }
+
     Ok(())
 }
