@@ -257,6 +257,7 @@ pub(crate) enum Command {
     Line(Line),
     Box(Box),
     Photo(Photo),
+    NewPage,
 }
 
 pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
@@ -316,6 +317,9 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 items.push(Command::Photo(parse_photo(
                     raw_pos_x, raw_pos_y, raw_width, raw_height,
                 )?));
+            }
+            Some(&"new_page") => {
+                items.push(Command::NewPage);
             }
             _ => return Err(anyhow!("Unsupported command!")),
         }

@@ -99,6 +99,9 @@ fn main() -> Result<()> {
             Command::Photo(photo) => {
                 println!("The photo '{}' was found!", photo);
             }
+            Command::NewPage => {
+                println!("New page was found!");
+            }
         }
     }
 
