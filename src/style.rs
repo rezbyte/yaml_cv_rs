@@ -174,10 +174,10 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 ])?));
             }
             Some(&"line") => {
-                let raw_starting_x = split_line.get(1).expect("Missing x value for string!");
-                let raw_starting_y = split_line.get(2).expect("Missing y value for string!");
-                let raw_ending_x = split_line.get(3).expect("Missing x value for string!");
-                let raw_ending_y = split_line.get(4).expect("Missing y value for string!");
+                let raw_starting_x = split_line.get(1).expect("Missing x value for line!");
+                let raw_starting_y = split_line.get(2).expect("Missing y value for line!");
+                let raw_ending_x = split_line.get(3).expect("Missing x value for line!");
+                let raw_ending_y = split_line.get(4).expect("Missing y value for line!");
                 items.push(Command::Line(parse_line(
                     raw_starting_x,
                     raw_starting_y,
