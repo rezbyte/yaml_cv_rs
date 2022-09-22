@@ -81,15 +81,20 @@ fn main() -> Result<()> {
     let raw_input_file = read_to_string(cli.input)?;
     let input_file: yaml::YAMLArgs = from_str(&raw_input_file)?;
 
-    let style_file = style::read(cli.style);
+    let style_file = style::read(cli.style)?;
 
     println!("Hello, {}!", input_file.name_kana);
 
-    let first_string = style_file?
-        .pop()
-        .expect("Expected style file to have contents");
-    if let Command::Text(text) = first_string {
-        println!("The string '{}' was found!", text.value);
+    for command in style_file {
+        match command {
+            Command::Text(text) => {
+                println!("The string '{}' was found!", text.value);
+            }
+            Command::Line(line) => {
+                println!("The line '{}' was found!", line);
+            }
+            _ => {}
+        }
     }
 
     Ok(())

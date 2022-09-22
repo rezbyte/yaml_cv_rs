@@ -2,6 +2,8 @@
 
 use anyhow::{anyhow, Result};
 use printpdf::Mm;
+use std::fmt::Result as FmtResult;
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::num::ParseFloatError;
@@ -12,6 +14,12 @@ use std::vec::Vec;
 pub(crate) struct Point {
     pub(crate) x: Mm,
     pub(crate) y: Mm,
+}
+
+impl Display for Point {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "({}, {})", self.x.0, self.y.0)
+    }
 }
 
 // Represents the size of a 2D object.
@@ -31,6 +39,12 @@ pub(crate) struct Text {
 pub(crate) struct Line {
     pub(crate) start_position: Point,
     pub(crate) end_position: Point,
+}
+
+impl Display for Line {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "({}, {})", self.start_position, self.end_position)
+    }
 }
 
 /// A box.
@@ -106,6 +120,26 @@ fn parse_string(parameters: [&str; 4]) -> Result<Text> {
     Ok(text)
 }
 
+fn parse_line(
+    raw_starting_x: &str,
+    raw_starting_y: &str,
+    raw_ending_x: &str,
+    raw_ending_y: &str,
+) -> Result<Line, ParseFloatError> {
+    let start_position = Point {
+        x: parse_mm(raw_starting_x)?,
+        y: parse_mm(raw_starting_y)?,
+    };
+    let end_position = Point {
+        x: parse_mm(raw_ending_x)?,
+        y: parse_mm(raw_ending_y)?,
+    };
+    Ok(Line {
+        start_position,
+        end_position,
+    })
+}
+
 pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
     let style_file = File::open(path)?;
     let reader = BufReader::new(style_file);
@@ -128,6 +162,18 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                     raw_value,
                     raw_font_size,
                 ])?));
+            }
+            Some(&"line") => {
+                let raw_starting_x = split_line.get(1).expect("Missing x value for string!");
+                let raw_starting_y = split_line.get(2).expect("Missing y value for string!");
+                let raw_ending_x = split_line.get(3).expect("Missing x value for string!");
+                let raw_ending_y = split_line.get(4).expect("Missing y value for string!");
+                items.push(Command::Line(parse_line(
+                    raw_starting_x,
+                    raw_starting_y,
+                    raw_ending_x,
+                    raw_ending_y,
+                )?));
             }
             _ => return Err(anyhow!("Unsupported command!")),
         }
