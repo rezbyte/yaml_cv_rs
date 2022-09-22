@@ -93,7 +93,6 @@ fn main() -> Result<()> {
             Command::Line(line) => {
                 println!("The line '{}' was found!", line);
             }
-            _ => {}
         }
     }
 
