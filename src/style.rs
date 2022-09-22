@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::num::ParseFloatError;
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::vec::Vec;
 
 // Represents a position in 2D space.
@@ -26,6 +27,12 @@ impl Display for Point {
 pub(crate) struct Size {
     pub(crate) width: Mm,
     pub(crate) height: Mm,
+}
+
+impl Display for Size {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "({}mm, {}mm)", self.width.0, self.height.0)
+    }
 }
 
 // Text.
@@ -53,10 +60,51 @@ impl Display for Line {
     }
 }
 
+pub(crate) enum LineStyle {
+    Solid,
+    Dashed,
+}
+
+impl Display for LineStyle {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match *self {
+            LineStyle::Solid => write!(f, "solid"),
+            LineStyle::Dashed => write!(f, "dashed"),
+        }
+    }
+}
+
+impl FromStr for LineStyle {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "solid" => Ok(LineStyle::Solid),
+            "dashed" => Ok(LineStyle::Dashed),
+            _ => Err(anyhow!("Failed to convert to LineStyle from string")),
+        }
+    }
+}
+
 /// A box.
 pub(crate) struct Box {
     pub(crate) position: Point,
     pub(crate) size: Size,
+    pub(crate) line_width: Option<f32>,
+    pub(crate) line_style: Option<LineStyle>,
+}
+
+impl Display for Box {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "({}, {}, {}, {})",
+            self.position,
+            self.size,
+            self.line_width.unwrap_or(12.0),
+            self.line_style.as_ref().unwrap_or(&LineStyle::Solid)
+        )
+    }
 }
 
 /// The postion & size of the `photo` in the YAML file.
@@ -97,21 +145,23 @@ pub(crate) struct MiscBox {
     pub(crate) value: String,
 }
 
-pub(crate) enum Command {
-    Text(Text),
-    Line(Line),
-}
-
 fn parse_mm(raw_mm: &str) -> Result<Mm, ParseFloatError> {
     let mm_number = raw_mm.trim_end_matches("mm");
     let mm_as_float: f64 = mm_number.parse::<f64>()?;
     Ok(Mm(mm_as_float))
 }
 
-fn parse_font_size(raw_font_size: &str) -> Result<f32, ParseFloatError> {
-    let font_size_number = raw_font_size.trim_start_matches("font_size=");
-    let font_size = font_size_number.parse::<f32>()?;
-    Ok(font_size)
+fn parse_option(name: &str, raw_option: &str) -> Result<f32, ParseFloatError> {
+    let pattern = format!("{}=", name);
+    let option_number = raw_option.trim_start_matches(&pattern);
+    let option_value = option_number.parse::<f32>()?;
+    Ok(option_value)
+}
+
+fn parse_line_style(raw_option: &str) -> Result<LineStyle> {
+    let option_number = raw_option.trim_start_matches("line_style=");
+    let option_value = option_number.parse::<LineStyle>()?;
+    Ok(option_value)
 }
 
 fn parse_string(parameters: [&str; 4]) -> Result<Text> {
@@ -122,7 +172,7 @@ fn parse_string(parameters: [&str; 4]) -> Result<Text> {
     let text = Text {
         position,
         value: (*parameters[2]).to_owned(),
-        font_size: parse_font_size(parameters[3])?,
+        font_size: parse_option("font_size", parameters[3])?,
     };
     Ok(text)
 }
@@ -145,6 +195,44 @@ fn parse_line(
         start_position,
         end_position,
     })
+}
+
+fn parse_box(
+    raw_pos_x: &str,
+    raw_pos_y: &str,
+    raw_width: &str,
+    raw_height: &str,
+    raw_line_options: Option<&&str>,
+) -> Result<Box> {
+    let position = Point {
+        x: parse_mm(raw_pos_x)?,
+        y: parse_mm(raw_pos_y)?,
+    };
+    let size = Size {
+        width: parse_mm(raw_width)?,
+        height: parse_mm(raw_height)?,
+    };
+    let mut line_width: Option<f32> = None;
+    let mut line_style: Option<LineStyle> = None;
+    if let Some(raw_option) = raw_line_options {
+        if raw_option.starts_with("line_width") {
+            line_width = Some(parse_option("line_width", raw_option)?);
+        } else if raw_option.starts_with("line_style") {
+            line_style = Some(parse_line_style(raw_option)?);
+        }
+    };
+    Ok(Box {
+        position,
+        size,
+        line_width,
+        line_style,
+    })
+}
+
+pub(crate) enum Command {
+    Text(Text),
+    Line(Line),
+    Box(Box),
 }
 
 pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
@@ -184,6 +272,16 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                     raw_starting_y,
                     raw_ending_x,
                     raw_ending_y,
+                )?));
+            }
+            Some(&"box") => {
+                let raw_pos_x = split_line.get(1).expect("Missing x position for box!");
+                let raw_pos_y = split_line.get(2).expect("Missing y position for box!");
+                let raw_width = split_line.get(3).expect("Missing width for box!");
+                let raw_height = split_line.get(4).expect("Missing height for box!");
+                let raw_option = split_line.get(5);
+                items.push(Command::Box(parse_box(
+                    raw_pos_x, raw_pos_y, raw_width, raw_height, raw_option,
                 )?));
             }
             _ => return Err(anyhow!("Unsupported command!")),

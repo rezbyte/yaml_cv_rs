@@ -93,6 +93,9 @@ fn main() -> Result<()> {
             Command::Line(line) => {
                 println!("The line '{}' was found!", line);
             }
+            Command::Box(the_box) => {
+                println!("The box '{}' was found!", the_box);
+            }
         }
     }
 
