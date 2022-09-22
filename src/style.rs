@@ -35,6 +35,12 @@ pub(crate) struct Text {
     pub(crate) font_size: f32,
 }
 
+impl Display for Text {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "({}, {}, {})", self.position, self.value, self.font_size)
+    }
+}
+
 /// A line.
 pub(crate) struct Line {
     pub(crate) start_position: Point,

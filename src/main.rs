@@ -88,7 +88,7 @@ fn main() -> Result<()> {
     for command in style_file {
         match command {
             Command::Text(text) => {
-                println!("The string '{}' was found!", text.value);
+                println!("The string '{}' was found!", text);
             }
             Command::Line(line) => {
                 println!("The line '{}' was found!", line);
