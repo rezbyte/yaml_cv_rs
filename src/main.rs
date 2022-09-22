@@ -108,6 +108,9 @@ fn main() -> Result<()> {
             Command::MultiLines(multilines) => {
                 println!("The multi-lines '{}' was found!", multilines);
             }
+            Command::YMBox(ymbox) => {
+                println!("The YM box '{}' was found!", ymbox);
+            }
         }
     }
 

@@ -166,6 +166,16 @@ pub(crate) struct YMBox {
     pub(crate) value: String,
 }
 
+impl Display for YMBox {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "({}, {}, {}, {})",
+            self.title, self.height.0, self.num, self.value,
+        )
+    }
+}
+
 /// A text box with a title.
 pub(crate) struct MiscBox {
     pub(crate) title: String,
@@ -333,6 +343,15 @@ fn parse_multilines(
     })
 }
 
+fn parse_ymbox(raw_title: &str, raw_height: &str, raw_num: &str, raw_value: &str) -> Result<YMBox> {
+    Ok(YMBox {
+        title: raw_title.to_owned(),
+        height: parse_mm(raw_height)?,
+        num: raw_num.parse::<u32>()?,
+        value: raw_value.to_owned(),
+    })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
@@ -341,6 +360,7 @@ pub(crate) enum Command {
     NewPage,
     TextBox(TextBox),
     MultiLines(MultiLines),
+    YMBox(YMBox),
 }
 
 #[allow(clippy::too_many_lines)]
@@ -446,6 +466,15 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                     raw_stroke_num,
                     raw_offset_x,
                     raw_offset_y,
+                )?));
+            }
+            Some(&"ymbox") => {
+                let raw_title = split_line.get(1).expect("Missing title for ym box!");
+                let raw_height = split_line.get(2).expect("Missing height for ym box!");
+                let raw_num = split_line.get(3).expect("Missing number for ym box!");
+                let raw_value = split_line.get(4).expect("Missing height for ym box!");
+                items.push(Command::YMBox(parse_ymbox(
+                    raw_title, raw_height, raw_num, raw_value,
                 )?));
             }
             _ => return Err(anyhow!("Unsupported command!")),
