@@ -152,6 +152,10 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
     let mut items: Vec<Command> = Vec::new();
     for (__index, line) in reader.lines().enumerate() {
         let line = line?;
+        // Handle comments
+        if line.starts_with('#') {
+            continue;
+        }
         let split_line: Vec<&str> = line.split(',').collect();
         let command_name = split_line.first();
         match command_name {
