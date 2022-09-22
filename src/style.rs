@@ -18,7 +18,7 @@ pub(crate) struct Point {
 
 impl Display for Point {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}, {})", self.x.0, self.y.0)
+        write!(f, "({}mm, {}mm)", self.x.0, self.y.0)
     }
 }
 
