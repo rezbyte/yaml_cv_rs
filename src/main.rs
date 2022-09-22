@@ -111,6 +111,9 @@ fn main() -> Result<()> {
             Command::YMBox(ymbox) => {
                 println!("The YM box '{}' was found!", ymbox);
             }
+            Command::MiscBox(miscbox) => {
+                println!("The misc box '{}' was found!", miscbox);
+            }
         }
     }
 

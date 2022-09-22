@@ -184,6 +184,16 @@ pub(crate) struct MiscBox {
     pub(crate) value: String,
 }
 
+impl Display for MiscBox {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "({}, {}, {}, {})",
+            self.title, self.y.0, self.height.0, self.value,
+        )
+    }
+}
+
 fn parse_mm(raw_mm: &str) -> Result<Mm, ParseFloatError> {
     let mm_number = raw_mm.trim_end_matches("mm");
     let mm_as_float: f64 = mm_number.parse::<f64>()?;
@@ -352,6 +362,20 @@ fn parse_ymbox(raw_title: &str, raw_height: &str, raw_num: &str, raw_value: &str
     })
 }
 
+fn parse_miscbox(
+    raw_title: &str,
+    raw_y: &str,
+    raw_height: &str,
+    raw_value: &str,
+) -> Result<MiscBox> {
+    Ok(MiscBox {
+        title: raw_title.to_owned(),
+        y: parse_mm(raw_y)?,
+        height: parse_mm(raw_height)?,
+        value: raw_value.to_owned(),
+    })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
@@ -361,6 +385,7 @@ pub(crate) enum Command {
     TextBox(TextBox),
     MultiLines(MultiLines),
     YMBox(YMBox),
+    MiscBox(MiscBox),
 }
 
 #[allow(clippy::too_many_lines)]
@@ -475,6 +500,15 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 let raw_value = split_line.get(4).expect("Missing height for ym box!");
                 items.push(Command::YMBox(parse_ymbox(
                     raw_title, raw_height, raw_num, raw_value,
+                )?));
+            }
+            Some(&"miscbox") => {
+                let raw_title = split_line.get(1).expect("Missing title for misc box!");
+                let raw_y = split_line.get(2).expect("Missing y value for misc box!");
+                let raw_height = split_line.get(3).expect("Missing height for misc box!");
+                let raw_value = split_line.get(4).expect("Missing value for misc box!");
+                items.push(Command::MiscBox(parse_miscbox(
+                    raw_title, raw_y, raw_height, raw_value,
                 )?));
             }
             _ => return Err(anyhow!("Unsupported command!")),
