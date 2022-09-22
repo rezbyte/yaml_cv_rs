@@ -70,6 +70,7 @@ pub(crate) struct TextBox {
     pub(crate) position: Point,
     pub(crate) size: Size,
     pub(crate) value: String,
+    pub(crate) font_size: Option<f32>,
 }
 
 /// A set of procedurally generated lines.
