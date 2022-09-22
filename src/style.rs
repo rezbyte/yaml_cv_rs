@@ -399,6 +399,10 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
         if line.starts_with('#') {
             continue;
         }
+        // Skip blank lines
+        if line.is_empty() {
+            continue;
+        }
         let split_line: Vec<&str> = line.split(',').collect();
         let command_name = split_line.first();
         match command_name {
