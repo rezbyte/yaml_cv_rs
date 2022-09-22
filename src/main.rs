@@ -96,6 +96,9 @@ fn main() -> Result<()> {
             Command::Box(the_box) => {
                 println!("The box '{}' was found!", the_box);
             }
+            Command::Photo(photo) => {
+                println!("The photo '{}' was found!", photo);
+            }
         }
     }
 

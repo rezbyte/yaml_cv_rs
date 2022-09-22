@@ -113,6 +113,12 @@ pub(crate) struct Photo {
     pub(crate) size: Size,
 }
 
+impl Display for Photo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "({}, {})", self.position, self.size,)
+    }
+}
+
 /// A text box.
 pub(crate) struct TextBox {
     pub(crate) position: Point,
@@ -229,10 +235,28 @@ fn parse_box(
     })
 }
 
+fn parse_photo(
+    raw_pos_x: &str,
+    raw_pos_y: &str,
+    raw_width: &str,
+    raw_height: &str,
+) -> Result<Photo, ParseFloatError> {
+    let position = Point {
+        x: parse_mm(raw_pos_x)?,
+        y: parse_mm(raw_pos_y)?,
+    };
+    let size = Size {
+        width: parse_mm(raw_width)?,
+        height: parse_mm(raw_height)?,
+    };
+    Ok(Photo { position, size })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
     Box(Box),
+    Photo(Photo),
 }
 
 pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
@@ -282,6 +306,15 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 let raw_option = split_line.get(5);
                 items.push(Command::Box(parse_box(
                     raw_pos_x, raw_pos_y, raw_width, raw_height, raw_option,
+                )?));
+            }
+            Some(&"photo") => {
+                let raw_pos_x = split_line.get(1).expect("Missing x position for photo!");
+                let raw_pos_y = split_line.get(2).expect("Missing y position for photo!");
+                let raw_width = split_line.get(3).expect("Missing width for box!");
+                let raw_height = split_line.get(4).expect("Missing height for box!");
+                items.push(Command::Photo(parse_photo(
+                    raw_pos_x, raw_pos_y, raw_width, raw_height,
                 )?));
             }
             _ => return Err(anyhow!("Unsupported command!")),
