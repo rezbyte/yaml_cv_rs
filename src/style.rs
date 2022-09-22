@@ -515,7 +515,12 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                     raw_title, raw_y, raw_height, raw_value,
                 )?));
             }
-            _ => return Err(anyhow!("Unsupported command!")),
+            _ => {
+                return Err(anyhow!(
+                    "Unsupported command {}!",
+                    command_name.unwrap_or(&"")
+                ))
+            }
         }
     }
     Ok(items)
