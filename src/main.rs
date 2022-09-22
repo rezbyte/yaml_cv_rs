@@ -105,6 +105,9 @@ fn main() -> Result<()> {
             Command::TextBox(textbox) => {
                 println!("The text box '{}' was found!", textbox);
             }
+            Command::MultiLines(multilines) => {
+                println!("The multi-lines '{}' was found!", multilines);
+            }
         }
     }
 

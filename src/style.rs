@@ -143,9 +143,19 @@ impl Display for TextBox {
 /// A set of procedurally generated lines.
 pub(crate) struct MultiLines {
     pub(crate) start_position: Point,
-    pub(crate) d_position: Point,
+    pub(crate) direction: Point,
     pub(crate) stroke_number: u32,
-    pub(crate) s_position: Point,
+    pub(crate) position_offset: Point,
+}
+
+impl Display for MultiLines {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "({}, {}, {}, {})",
+            self.start_position, self.direction, self.stroke_number, self.position_offset,
+        )
+    }
 }
 
 /// A time table.
@@ -293,6 +303,36 @@ fn parse_textbox(
     })
 }
 
+fn parse_multilines(
+    raw_pos_x: &str,
+    raw_pos_y: &str,
+    raw_direction_x: &str,
+    raw_direction_y: &str,
+    raw_stroke_num: &str,
+    raw_offset_x: &str,
+    raw_offset_y: &str,
+) -> Result<MultiLines> {
+    let start_position = Point {
+        x: parse_mm(raw_pos_x)?,
+        y: parse_mm(raw_pos_y)?,
+    };
+    let d_position = Point {
+        x: parse_mm(raw_direction_x)?,
+        y: parse_mm(raw_direction_y)?,
+    };
+    let stroke_number: u32 = raw_stroke_num.parse::<u32>()?;
+    let s_position = Point {
+        x: parse_mm(raw_offset_x)?,
+        y: parse_mm(raw_offset_y)?,
+    };
+    Ok(MultiLines {
+        start_position,
+        direction: d_position,
+        stroke_number,
+        position_offset: s_position,
+    })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
@@ -300,8 +340,10 @@ pub(crate) enum Command {
     Photo(Photo),
     NewPage,
     TextBox(TextBox),
+    MultiLines(MultiLines),
 }
 
+#[allow(clippy::too_many_lines)]
 pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
     let style_file = File::open(path)?;
     let reader = BufReader::new(style_file);
@@ -372,6 +414,38 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 let raw_option = split_line.get(6);
                 items.push(Command::TextBox(parse_textbox(
                     raw_pos_x, raw_pos_y, raw_width, raw_height, raw_value, raw_option,
+                )?));
+            }
+            Some(&"multi_lines") => {
+                let raw_pos_x = split_line
+                    .get(1)
+                    .expect("Missing x position for multi-lines!");
+                let raw_pos_y = split_line
+                    .get(2)
+                    .expect("Missing y position for multi-lines!");
+                let raw_direction_x = split_line
+                    .get(3)
+                    .expect("Missing dx position for multi-lines!");
+                let raw_direction_y = split_line
+                    .get(4)
+                    .expect("Missing dy position for multi-lines!");
+                let raw_stroke_num = split_line
+                    .get(5)
+                    .expect("Missing number of strokes for multi-lines!");
+                let raw_offset_x = split_line
+                    .get(6)
+                    .expect("Missing sx position for multi-lines!");
+                let raw_offset_y = split_line
+                    .get(7)
+                    .expect("Missing sy position for multi-lines!");
+                items.push(Command::MultiLines(parse_multilines(
+                    raw_pos_x,
+                    raw_pos_y,
+                    raw_direction_x,
+                    raw_direction_y,
+                    raw_stroke_num,
+                    raw_offset_x,
+                    raw_offset_y,
                 )?));
             }
             _ => return Err(anyhow!("Unsupported command!")),
