@@ -51,17 +51,20 @@ fn parse_string(parameters: &[&str], line_number: usize) -> Result<Text> {
     let raw_x = *handle_missing(parameters.get(1), "x", "string", line_number);
     let raw_y = *handle_missing(parameters.get(2), "y", "string", line_number);
     let raw_value = *handle_missing(parameters.get(3), "value", "string", line_number);
-    let raw_font_size = *handle_missing(parameters.get(4), "font size", "string", line_number);
+    let raw_font_options = parameters.get(4);
     let position = Point {
         x: parse_mm(raw_x)?,
         y: parse_mm(raw_y)?,
     };
-    let text = Text {
+    let mut font_size: Option<f32> = None;
+    if let Some(raw_option) = raw_font_options {
+        font_size = Some(parse_option("font_size", raw_option)?);
+    }
+    Ok(Text {
         position,
         value: (*raw_value).to_owned(),
-        font_size: parse_option("font_size", raw_font_size)?,
-    };
-    Ok(text)
+        font_size,
+    })
 }
 
 fn parse_line(parameters: &[&str], line_number: usize) -> Result<Line, ParseFloatError> {

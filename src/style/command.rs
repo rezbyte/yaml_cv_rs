@@ -9,12 +9,18 @@ use std::fmt::{Display, Formatter};
 pub(crate) struct Text {
     pub(crate) position: core::Point,
     pub(crate) value: String,
-    pub(crate) font_size: f32,
+    pub(crate) font_size: Option<f32>,
 }
 
 impl Display for Text {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}, {}, {})", self.position, self.value, self.font_size)
+        write!(
+            f,
+            "({}, {}, {})",
+            self.position,
+            self.value,
+            self.font_size.unwrap_or(12.0)
+        )
     }
 }
 
