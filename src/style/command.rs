@@ -5,7 +5,7 @@ use printpdf::Mm;
 use std::fmt::Result as FmtResult;
 use std::fmt::{Display, Formatter};
 
-/// Text.
+/// A string.
 pub(crate) struct Text {
     pub(crate) position: core::Point,
     pub(crate) value: String,
@@ -102,7 +102,7 @@ impl Display for MultiLines {
     }
 }
 
-/// A time table.
+/// A row for the time table.
 pub(crate) struct YMBox {
     pub(crate) title: String,
     pub(crate) height: Mm,
@@ -134,6 +134,33 @@ impl Display for MiscBox {
             f,
             "({}, {}, {}, {})",
             self.title, self.y.0, self.height.0, self.value,
+        )
+    }
+}
+
+/// A time table.
+pub(crate) struct History {
+    pub(crate) y: Mm,
+    pub(crate) year_x: Mm,
+    pub(crate) month_x: Mm,
+    pub(crate) value_x: Mm,
+    pub(crate) padding: Mm,
+    pub(crate) value: String,
+    pub(crate) font_size: Option<f32>,
+}
+
+impl Display for History {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "(({}, {}, {}, {}), {}, {}, {})",
+            self.y.0,
+            self.year_x.0,
+            self.month_x.0,
+            self.value_x.0,
+            self.padding.0,
+            self.value,
+            self.font_size.unwrap_or(12.0)
         )
     }
 }

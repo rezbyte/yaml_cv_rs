@@ -114,6 +114,9 @@ fn main() -> Result<()> {
             Command::MiscBox(miscbox) => {
                 println!("The misc box '{}' was found!", miscbox);
             }
+            Command::History(history) => {
+                println!("The history '{}' was found!", history);
+            }
         }
     }
 

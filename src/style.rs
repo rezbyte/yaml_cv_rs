@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::vec::Vec;
 mod command;
 mod core;
-use crate::style::command::{Line, MiscBox, MultiLines, Photo, Text, TextBox, YMBox};
+use crate::style::command::{History, Line, MiscBox, MultiLines, Photo, Text, TextBox, YMBox};
 use crate::style::core::{LineStyle, Point, Size};
 
 fn handle_missing<T>(
@@ -215,6 +215,30 @@ fn parse_miscbox(parameters: &[&str], line_number: usize) -> Result<MiscBox> {
     })
 }
 
+fn parse_history(parameters: &[&str], line_number: usize) -> Result<History> {
+    let raw_y = *handle_missing(parameters.get(1), "y", "history", line_number);
+    let raw_year_x = *handle_missing(parameters.get(2), "year x", "history", line_number);
+    let raw_month_x = *handle_missing(parameters.get(3), "month x", "history", line_number);
+    let raw_value_x = *handle_missing(parameters.get(4), "value x", "history", line_number);
+    let raw_padding = *handle_missing(parameters.get(5), "dy", "history", line_number);
+    let raw_value = *handle_missing(parameters.get(6), "value", "history", line_number);
+    let raw_font_options = parameters.get(7);
+
+    let mut font_size: Option<f32> = None;
+    if let Some(raw_option) = raw_font_options {
+        font_size = Some(parse_option("font_size", raw_option)?);
+    }
+    Ok(History {
+        y: parse_mm(raw_y)?,
+        year_x: parse_mm(raw_year_x)?,
+        month_x: parse_mm(raw_month_x)?,
+        value_x: parse_mm(raw_value_x)?,
+        padding: parse_mm(raw_padding)?,
+        value: raw_value.to_owned(),
+        font_size,
+    })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
@@ -225,6 +249,7 @@ pub(crate) enum Command {
     MultiLines(MultiLines),
     YMBox(YMBox),
     MiscBox(MiscBox),
+    History(History),
 }
 
 type LineIterator = Enumerate<Lines<BufReader<File>>>;
@@ -283,6 +308,10 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
             Some(&"miscbox") => {
                 let miscbox = parse_miscbox(&split_line, index)?;
                 items.push(Command::MiscBox(miscbox));
+            }
+            Some(&"history") => {
+                let history = parse_history(&split_line, index)?;
+                items.push(Command::History(history));
             }
             _ => {
                 return Err(anyhow!(
