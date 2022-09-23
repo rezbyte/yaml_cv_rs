@@ -123,6 +123,9 @@ fn main() -> Result<()> {
                     education_experience
                 );
             }
+            Command::Lines(lines) => {
+                println!("The lines '{}' was found!", lines);
+            }
         }
     }
 

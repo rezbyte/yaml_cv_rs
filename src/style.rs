@@ -3,7 +3,7 @@
 use anyhow::{anyhow, Result};
 use printpdf::Mm;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Lines};
+use std::io::{BufRead, BufReader};
 use std::iter::Enumerate;
 use std::num::ParseFloatError;
 use std::path::PathBuf;
@@ -11,7 +11,7 @@ use std::vec::Vec;
 mod command;
 mod core;
 use crate::style::command::{
-    EducationExperience, History, Line, MiscBox, MultiLines, Photo, Text, TextBox, YMBox,
+    EducationExperience, History, Line, Lines, MiscBox, MultiLines, Photo, Text, TextBox, YMBox,
 };
 use crate::style::core::{LineStyle, Point, Size};
 
@@ -34,10 +34,10 @@ fn parse_mm(raw_mm: &str) -> Result<Mm, ParseFloatError> {
     Ok(Mm(mm_as_float))
 }
 
-fn parse_option(name: &str, raw_option: &str) -> Result<f32, ParseFloatError> {
+fn parse_option<T: std::str::FromStr>(name: &str, raw_option: &str) -> Result<T, T::Err> {
     let pattern = format!("{}=", name);
     let option_number = raw_option.trim_start_matches(&pattern);
-    let option_value = option_number.parse::<f32>()?;
+    let option_value = option_number.parse::<T>()?;
     Ok(option_value)
 }
 
@@ -273,6 +273,47 @@ fn parse_education_experience(
     })
 }
 
+fn parse_lines(parameters: &[&str], line_number: usize) -> Result<Lines> {
+    let raw_stroke_number = *handle_missing(parameters.get(1), "num", "misc box", line_number);
+
+    let mut positions: Vec<Point> = Vec::new();
+    let mut i = 2;
+    while let [Some(raw_x), Some(raw_y)] = [parameters.get(i), parameters.get(i + 1)] {
+        if raw_x.contains('=') || raw_y.contains('=') {
+            break;
+        }
+        positions.push(Point {
+            x: parse_mm(raw_x)?,
+            y: parse_mm(raw_y)?,
+        });
+        i += 2;
+    }
+    let final_i = i;
+
+    let mut line_width: Option<f32> = None;
+    let mut close: Option<bool> = None;
+    if let Some(raw_first_option) = parameters.get(final_i) {
+        if raw_first_option.starts_with("line_width") {
+            line_width = Some(parse_option("line_width", raw_first_option)?);
+            if let Some(raw_second_option) = parameters.get(final_i + 1) {
+                close = Some(parse_option("close", raw_second_option)?);
+            }
+        } else if raw_first_option.starts_with("close") {
+            close = Some(parse_option("close", raw_first_option)?);
+            if let Some(raw_second_option) = parameters.get(final_i + 1) {
+                line_width = Some(parse_option("line_width", raw_second_option)?);
+            }
+        }
+    }
+
+    Ok(Lines {
+        stroke_number: raw_stroke_number.parse::<u32>()?,
+        positions,
+        line_width,
+        close,
+    })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
@@ -285,9 +326,10 @@ pub(crate) enum Command {
     MiscBox(MiscBox),
     History(History),
     EducationExperience(EducationExperience),
+    Lines(Lines),
 }
 
-type LineIterator = Enumerate<Lines<BufReader<File>>>;
+type LineIterator = Enumerate<std::io::Lines<BufReader<File>>>;
 fn get_lines(path: PathBuf) -> std::io::Result<LineIterator> {
     let style_file = File::open(path)?;
     let reader = BufReader::new(style_file);
@@ -351,6 +393,10 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
             Some(&"education_experience") => {
                 let education_experience = parse_education_experience(&split_line, index)?;
                 items.push(Command::EducationExperience(education_experience));
+            }
+            Some(&"lines") => {
+                let lines = parse_lines(&split_line, index)?;
+                items.push(Command::Lines(lines));
             }
             _ => {
                 return Err(anyhow!(

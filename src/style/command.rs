@@ -199,3 +199,29 @@ impl Display for EducationExperience {
         )
     }
 }
+
+/// A custom shape defined by a set of positions.
+pub(crate) struct Lines {
+    pub(crate) stroke_number: u32,
+    pub(crate) positions: Vec<core::Point>,
+    pub(crate) line_width: Option<f32>,
+    pub(crate) close: Option<bool>,
+}
+
+impl Display for Lines {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        let mut position_text: String = String::new();
+        for point in &self.positions {
+            let point_text = format!("{}, ", point);
+            position_text.push_str(&point_text);
+        }
+        write!(
+            f,
+            "({}, {}{}, {})",
+            self.stroke_number,
+            position_text,
+            self.line_width.unwrap_or(12.0),
+            self.close.unwrap_or(false)
+        )
+    }
+}
