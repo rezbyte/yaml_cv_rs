@@ -13,7 +13,7 @@ mod core;
 use crate::style::command::{
     EducationExperience, History, Line, Lines, MiscBox, MultiLines, Photo, Text, TextBox, YMBox,
 };
-use crate::style::core::{LineStyle, Point, Size};
+use crate::style::core::{FontOptions, LineOptions, LineStyle, Point, Size};
 
 fn handle_missing<T>(
     expression: Option<T>,
@@ -41,27 +41,58 @@ fn parse_option<T: std::str::FromStr>(name: &str, raw_option: &str) -> Result<T,
     Ok(option_value)
 }
 
+fn parse_font_options(parameters: &[&str]) -> Result<FontOptions> {
+    let mut font_size: Option<f32> = None;
+    let mut font_face: Option<String> = None;
+    for parameter in parameters {
+        if let Some((command, value)) = (*parameter).to_owned().split_once('=') {
+            match command {
+                "font_size" => font_size = Some(value.parse::<f32>()?),
+                "font_face" => font_face = Some(value.to_owned()),
+                _ => continue,
+            }
+        }
+    }
+    Ok(FontOptions {
+        font_size,
+        font_face,
+    })
+}
+
+fn parse_line_options(parameters: &[&str]) -> Result<LineOptions> {
+    let mut line_width: Option<f32> = None;
+    let mut line_style: Option<LineStyle> = None;
+    for parameter in parameters {
+        if let Some((command, value)) = (*parameter).to_owned().split_once('=') {
+            match command {
+                "line_width" => line_width = Some(value.parse::<f32>()?),
+                "line_style" => line_style = Some(value.parse::<LineStyle>()?),
+                _ => continue,
+            }
+        }
+    }
+    Ok(LineOptions {
+        line_width,
+        line_style,
+    })
+}
+
 fn parse_string(parameters: &[&str], line_number: usize) -> Result<Text> {
     let raw_x = *handle_missing(parameters.get(1), "x", "string", line_number);
     let raw_y = *handle_missing(parameters.get(2), "y", "string", line_number);
     let raw_value = *handle_missing(parameters.get(3), "value", "string", line_number);
-    let raw_font_options = parameters.get(4);
     let position = Point {
         x: parse_mm(raw_x)?,
         y: parse_mm(raw_y)?,
     };
-    let mut font_size: Option<f32> = None;
-    if let Some(raw_option) = raw_font_options {
-        font_size = Some(parse_option("font_size", raw_option)?);
-    }
     Ok(Text {
         position,
-        value: (*raw_value).to_owned(),
-        font_size,
+        value: raw_value.to_owned(),
+        font_options: parse_font_options(parameters)?,
     })
 }
 
-fn parse_line(parameters: &[&str], line_number: usize) -> Result<Line, ParseFloatError> {
+fn parse_line(parameters: &[&str], line_number: usize) -> Result<Line> {
     let raw_starting_x = *handle_missing(parameters.get(1), "x1", "line", line_number);
     let raw_starting_y = *handle_missing(parameters.get(2), "2", "line", line_number);
     let raw_ending_x = *handle_missing(parameters.get(3), "x2", "line", line_number);
@@ -77,6 +108,7 @@ fn parse_line(parameters: &[&str], line_number: usize) -> Result<Line, ParseFloa
     Ok(Line {
         start_position,
         end_position,
+        line_options: parse_line_options(parameters)?,
     })
 }
 
@@ -85,7 +117,6 @@ fn parse_box(parameters: &[&str], line_number: usize) -> Result<command::Box> {
     let raw_pos_y = *handle_missing(parameters.get(2), "y", "box", line_number);
     let raw_width = *handle_missing(parameters.get(3), "width", "box", line_number);
     let raw_height = *handle_missing(parameters.get(4), "height", "box", line_number);
-    let raw_line_options = parameters.get(5);
     let position = Point {
         x: parse_mm(raw_pos_x)?,
         y: parse_mm(raw_pos_y)?,
@@ -94,20 +125,10 @@ fn parse_box(parameters: &[&str], line_number: usize) -> Result<command::Box> {
         width: parse_mm(raw_width)?,
         height: parse_mm(raw_height)?,
     };
-    let mut line_width: Option<f32> = None;
-    let mut line_style: Option<LineStyle> = None;
-    if let Some(raw_option) = raw_line_options {
-        if raw_option.starts_with("line_width") {
-            line_width = Some(parse_option("line_width", raw_option)?);
-        } else if raw_option.starts_with("line_style") {
-            line_style = Some(parse_option("line_style", raw_option)?);
-        }
-    };
     Ok(command::Box {
         position,
         size,
-        line_width,
-        line_style,
+        line_options: parse_line_options(parameters)?,
     })
 }
 
@@ -133,7 +154,6 @@ fn parse_textbox(parameters: &[&str], line_number: usize) -> Result<TextBox> {
     let raw_width = *handle_missing(parameters.get(3), "width", "text box", line_number);
     let raw_height = *handle_missing(parameters.get(4), "height", "text box", line_number);
     let raw_value = *handle_missing(parameters.get(5), "value", "text box", line_number);
-    let raw_font_size = parameters.get(6);
     let position = Point {
         x: parse_mm(raw_pos_x)?,
         y: parse_mm(raw_pos_y)?,
@@ -142,15 +162,11 @@ fn parse_textbox(parameters: &[&str], line_number: usize) -> Result<TextBox> {
         width: parse_mm(raw_width)?,
         height: parse_mm(raw_height)?,
     };
-    let mut font_size: Option<f32> = None;
-    if let Some(raw_option) = raw_font_size {
-        font_size = Some(parse_option("font_size", raw_option)?);
-    };
     Ok(TextBox {
         position,
         size,
         value: raw_value.to_owned(),
-        font_size,
+        font_options: parse_font_options(parameters)?,
     })
 }
 
@@ -221,12 +237,7 @@ fn parse_history(parameters: &[&str], line_number: usize) -> Result<History> {
     let raw_value_x = *handle_missing(parameters.get(4), "value x", "history", line_number);
     let raw_padding = *handle_missing(parameters.get(5), "dy", "history", line_number);
     let raw_value = *handle_missing(parameters.get(6), "value", "history", line_number);
-    let raw_font_options = parameters.get(7);
 
-    let mut font_size: Option<f32> = None;
-    if let Some(raw_option) = raw_font_options {
-        font_size = Some(parse_option("font_size", raw_option)?);
-    }
     Ok(History {
         y: parse_mm(raw_y)?,
         year_x: parse_mm(raw_year_x)?,
@@ -234,7 +245,7 @@ fn parse_history(parameters: &[&str], line_number: usize) -> Result<History> {
         value_x: parse_mm(raw_value_x)?,
         padding: parse_mm(raw_padding)?,
         value: raw_value.to_owned(),
-        font_size,
+        font_options: parse_font_options(parameters)?,
     })
 }
 
@@ -249,12 +260,7 @@ fn parse_education_experience(
     let raw_padding = *handle_missing(parameters.get(5), "dy", "history", line_number);
     let raw_caption_x = *handle_missing(parameters.get(6), "caption x", "history", line_number);
     let raw_ijo_x = *handle_missing(parameters.get(7), "ijo x", "history", line_number);
-    let raw_font_options = parameters.get(8);
 
-    let mut font_size: Option<f32> = None;
-    if let Some(raw_option) = raw_font_options {
-        font_size = Some(parse_option("font_size", raw_option)?);
-    }
     Ok(EducationExperience {
         y: parse_mm(raw_y)?,
         year_x: parse_mm(raw_year_x)?,
@@ -263,7 +269,7 @@ fn parse_education_experience(
         padding: parse_mm(raw_padding)?,
         caption_x: parse_mm(raw_caption_x)?,
         ijo_x: parse_mm(raw_ijo_x)?,
-        font_size,
+        font_options: parse_font_options(parameters)?,
     })
 }
 
@@ -282,28 +288,16 @@ fn parse_lines(parameters: &[&str], line_number: usize) -> Result<Lines> {
         });
         i += 2;
     }
-    let final_i = i;
 
-    let mut line_width: Option<f32> = None;
     let mut close: Option<bool> = None;
-    if let Some(raw_first_option) = parameters.get(final_i) {
-        if raw_first_option.starts_with("line_width") {
-            line_width = Some(parse_option("line_width", raw_first_option)?);
-            if let Some(raw_second_option) = parameters.get(final_i + 1) {
-                close = Some(parse_option("close", raw_second_option)?);
-            }
-        } else if raw_first_option.starts_with("close") {
-            close = Some(parse_option("close", raw_first_option)?);
-            if let Some(raw_second_option) = parameters.get(final_i + 1) {
-                line_width = Some(parse_option("line_width", raw_second_option)?);
-            }
-        }
+    if let Some(raw_option) = parameters.last() {
+        close = Some(parse_option("close", raw_option)?);
     }
 
     Ok(Lines {
         stroke_number: raw_stroke_number.parse::<u32>()?,
         positions,
-        line_width,
+        line_options: parse_line_options(parameters)?,
         close,
     })
 }

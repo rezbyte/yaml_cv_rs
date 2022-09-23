@@ -1,15 +1,15 @@
 //! The commands supported in the style file
 
-use crate::style::core;
+use crate::style::core::{FontOptions, LineOptions, Point, Size};
 use printpdf::Mm;
 use std::fmt::Result as FmtResult;
 use std::fmt::{Display, Formatter};
 
 /// A string.
 pub(crate) struct Text {
-    pub(crate) position: core::Point,
+    pub(crate) position: Point,
     pub(crate) value: String,
-    pub(crate) font_size: Option<f32>,
+    pub(crate) font_options: FontOptions,
 }
 
 impl Display for Text {
@@ -17,50 +17,49 @@ impl Display for Text {
         write!(
             f,
             "({}, {}, {})",
-            self.position,
-            self.value,
-            self.font_size.unwrap_or(12.0)
+            self.position, self.value, self.font_options
         )
     }
 }
 
 /// A line.
 pub(crate) struct Line {
-    pub(crate) start_position: core::Point,
-    pub(crate) end_position: core::Point,
+    pub(crate) start_position: Point,
+    pub(crate) end_position: Point,
+    pub(crate) line_options: LineOptions,
 }
 
 impl Display for Line {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}, {})", self.start_position, self.end_position)
+        write!(
+            f,
+            "({}, {}, {})",
+            self.start_position, self.end_position, self.line_options
+        )
     }
 }
 
 /// A box.
 pub(crate) struct Box {
-    pub(crate) position: core::Point,
-    pub(crate) size: core::Size,
-    pub(crate) line_width: Option<f32>,
-    pub(crate) line_style: Option<core::LineStyle>,
+    pub(crate) position: Point,
+    pub(crate) size: Size,
+    pub(crate) line_options: LineOptions,
 }
 
 impl Display for Box {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
-            "({}, {}, {}, {})",
-            self.position,
-            self.size,
-            self.line_width.unwrap_or(12.0),
-            self.line_style.as_ref().unwrap_or(&core::LineStyle::Solid)
+            "({}, {}, {})",
+            self.position, self.size, self.line_options,
         )
     }
 }
 
 /// The postion & size of the `photo` in the YAML file.
 pub(crate) struct Photo {
-    pub(crate) position: core::Point,
-    pub(crate) size: core::Size,
+    pub(crate) position: Point,
+    pub(crate) size: Size,
 }
 
 impl Display for Photo {
@@ -71,10 +70,10 @@ impl Display for Photo {
 
 /// A text box.
 pub(crate) struct TextBox {
-    pub(crate) position: core::Point,
-    pub(crate) size: core::Size,
+    pub(crate) position: Point,
+    pub(crate) size: Size,
     pub(crate) value: String,
-    pub(crate) font_size: Option<f32>,
+    pub(crate) font_options: FontOptions,
 }
 
 impl Display for TextBox {
@@ -82,20 +81,17 @@ impl Display for TextBox {
         write!(
             f,
             "({}, {}, {}, {})",
-            self.position,
-            self.size,
-            self.value,
-            self.font_size.unwrap_or(12.0),
+            self.position, self.size, self.value, self.font_options,
         )
     }
 }
 
 /// A set of procedurally generated lines.
 pub(crate) struct MultiLines {
-    pub(crate) start_position: core::Point,
-    pub(crate) direction: core::Point,
+    pub(crate) start_position: Point,
+    pub(crate) direction: Point,
     pub(crate) stroke_number: u32,
-    pub(crate) position_offset: core::Point,
+    pub(crate) position_offset: Point,
 }
 
 impl Display for MultiLines {
@@ -152,7 +148,7 @@ pub(crate) struct History {
     pub(crate) value_x: Mm,
     pub(crate) padding: Mm,
     pub(crate) value: String,
-    pub(crate) font_size: Option<f32>,
+    pub(crate) font_options: FontOptions,
 }
 
 impl Display for History {
@@ -166,7 +162,7 @@ impl Display for History {
             self.value_x.0,
             self.padding.0,
             self.value,
-            self.font_size.unwrap_or(12.0)
+            self.font_options,
         )
     }
 }
@@ -180,7 +176,7 @@ pub(crate) struct EducationExperience {
     pub(crate) padding: Mm,
     pub(crate) caption_x: Mm,
     pub(crate) ijo_x: Mm,
-    pub(crate) font_size: Option<f32>,
+    pub(crate) font_options: FontOptions,
 }
 
 impl Display for EducationExperience {
@@ -195,7 +191,7 @@ impl Display for EducationExperience {
             self.padding.0,
             self.caption_x.0,
             self.ijo_x.0,
-            self.font_size.unwrap_or(12.0)
+            self.font_options
         )
     }
 }
@@ -203,8 +199,8 @@ impl Display for EducationExperience {
 /// A custom shape defined by a set of positions.
 pub(crate) struct Lines {
     pub(crate) stroke_number: u32,
-    pub(crate) positions: Vec<core::Point>,
-    pub(crate) line_width: Option<f32>,
+    pub(crate) positions: Vec<Point>,
+    pub(crate) line_options: LineOptions,
     pub(crate) close: Option<bool>,
 }
 
@@ -220,7 +216,7 @@ impl Display for Lines {
             "({}, {}{}, {})",
             self.stroke_number,
             position_text,
-            self.line_width.unwrap_or(12.0),
+            self.line_options,
             self.close.unwrap_or(false)
         )
     }
