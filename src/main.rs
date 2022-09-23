@@ -117,6 +117,12 @@ fn main() -> Result<()> {
             Command::History(history) => {
                 println!("The history '{}' was found!", history);
             }
+            Command::EducationExperience(education_experience) => {
+                println!(
+                    "The education experience '{}' was found!",
+                    education_experience
+                );
+            }
         }
     }
 

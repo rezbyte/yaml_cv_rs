@@ -164,3 +164,32 @@ impl Display for History {
         )
     }
 }
+
+/// An employment & education history table.
+pub(crate) struct EducationExperience {
+    pub(crate) y: Mm,
+    pub(crate) year_x: Mm,
+    pub(crate) month_x: Mm,
+    pub(crate) value_x: Mm,
+    pub(crate) padding: Mm,
+    pub(crate) caption_x: Mm,
+    pub(crate) ijo_x: Mm,
+    pub(crate) font_size: Option<f32>,
+}
+
+impl Display for EducationExperience {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "(({}mm, {}mm, {}mm, {}mm), {}mm, ({}mm, {}mm), {})",
+            self.y.0,
+            self.year_x.0,
+            self.month_x.0,
+            self.value_x.0,
+            self.padding.0,
+            self.caption_x.0,
+            self.ijo_x.0,
+            self.font_size.unwrap_or(12.0)
+        )
+    }
+}

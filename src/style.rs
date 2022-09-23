@@ -10,7 +10,9 @@ use std::path::PathBuf;
 use std::vec::Vec;
 mod command;
 mod core;
-use crate::style::command::{History, Line, MiscBox, MultiLines, Photo, Text, TextBox, YMBox};
+use crate::style::command::{
+    EducationExperience, History, Line, MiscBox, MultiLines, Photo, Text, TextBox, YMBox,
+};
 use crate::style::core::{LineStyle, Point, Size};
 
 fn handle_missing<T>(
@@ -239,6 +241,35 @@ fn parse_history(parameters: &[&str], line_number: usize) -> Result<History> {
     })
 }
 
+fn parse_education_experience(
+    parameters: &[&str],
+    line_number: usize,
+) -> Result<EducationExperience> {
+    let raw_y = *handle_missing(parameters.get(1), "y", "history", line_number);
+    let raw_year_x = *handle_missing(parameters.get(2), "year x", "history", line_number);
+    let raw_month_x = *handle_missing(parameters.get(3), "month x", "history", line_number);
+    let raw_value_x = *handle_missing(parameters.get(4), "value x", "history", line_number);
+    let raw_padding = *handle_missing(parameters.get(5), "dy", "history", line_number);
+    let raw_caption_x = *handle_missing(parameters.get(6), "caption x", "history", line_number);
+    let raw_ijo_x = *handle_missing(parameters.get(7), "ijo x", "history", line_number);
+    let raw_font_options = parameters.get(8);
+
+    let mut font_size: Option<f32> = None;
+    if let Some(raw_option) = raw_font_options {
+        font_size = Some(parse_option("font_size", raw_option)?);
+    }
+    Ok(EducationExperience {
+        y: parse_mm(raw_y)?,
+        year_x: parse_mm(raw_year_x)?,
+        month_x: parse_mm(raw_month_x)?,
+        value_x: parse_mm(raw_value_x)?,
+        padding: parse_mm(raw_padding)?,
+        caption_x: parse_mm(raw_caption_x)?,
+        ijo_x: parse_mm(raw_ijo_x)?,
+        font_size,
+    })
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
@@ -250,6 +281,7 @@ pub(crate) enum Command {
     YMBox(YMBox),
     MiscBox(MiscBox),
     History(History),
+    EducationExperience(EducationExperience),
 }
 
 type LineIterator = Enumerate<Lines<BufReader<File>>>;
@@ -312,6 +344,10 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
             Some(&"history") => {
                 let history = parse_history(&split_line, index)?;
                 items.push(Command::History(history));
+            }
+            Some(&"education_experience") => {
+                let education_experience = parse_education_experience(&split_line, index)?;
+                items.push(Command::EducationExperience(education_experience));
             }
             _ => {
                 return Err(anyhow!(
