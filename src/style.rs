@@ -12,6 +12,19 @@ mod core;
 use crate::style::command::{Line, MiscBox, MultiLines, Photo, Text, TextBox, YMBox};
 use crate::style::core::{LineStyle, Point, Size};
 
+fn handle_missing<T>(
+    expression: Option<T>,
+    value_name: &str,
+    command_name: &str,
+    line_number: usize,
+) -> T {
+    let message = format!(
+        "Missing {} value for {} at line: {}",
+        value_name, command_name, line_number
+    );
+    expression.expect(&message)
+}
+
 fn parse_mm(raw_mm: &str) -> Result<Mm, ParseFloatError> {
     let mm_number = raw_mm.trim_end_matches("mm");
     let mm_as_float: f64 = mm_number.parse::<f64>()?;
@@ -31,25 +44,28 @@ fn parse_line_style(raw_option: &str) -> Result<LineStyle> {
     Ok(option_value)
 }
 
-fn parse_string(parameters: [&str; 4]) -> Result<Text> {
+fn parse_string(parameters: &[&str], line_number: usize) -> Result<Text> {
+    let raw_x = *handle_missing(parameters.get(1), "x", "string", line_number);
+    let raw_y = *handle_missing(parameters.get(2), "y", "string", line_number);
+    let raw_value = *handle_missing(parameters.get(3), "value", "string", line_number);
+    let raw_font_size = *handle_missing(parameters.get(4), "font size", "string", line_number);
     let position = Point {
-        x: parse_mm(parameters[0])?,
-        y: parse_mm(parameters[1])?,
+        x: parse_mm(raw_x)?,
+        y: parse_mm(raw_y)?,
     };
     let text = Text {
         position,
-        value: (*parameters[2]).to_owned(),
-        font_size: parse_option("font_size", parameters[3])?,
+        value: (*raw_value).to_owned(),
+        font_size: parse_option("font_size", raw_font_size)?,
     };
     Ok(text)
 }
 
-fn parse_line(
-    raw_starting_x: &str,
-    raw_starting_y: &str,
-    raw_ending_x: &str,
-    raw_ending_y: &str,
-) -> Result<Line, ParseFloatError> {
+fn parse_line(parameters: &[&str], line_number: usize) -> Result<Line, ParseFloatError> {
+    let raw_starting_x = *handle_missing(parameters.get(1), "x1", "line", line_number);
+    let raw_starting_y = *handle_missing(parameters.get(2), "2", "line", line_number);
+    let raw_ending_x = *handle_missing(parameters.get(3), "x2", "line", line_number);
+    let raw_ending_y = *handle_missing(parameters.get(4), "y2", "line", line_number);
     let start_position = Point {
         x: parse_mm(raw_starting_x)?,
         y: parse_mm(raw_starting_y)?,
@@ -64,13 +80,12 @@ fn parse_line(
     })
 }
 
-fn parse_box(
-    raw_pos_x: &str,
-    raw_pos_y: &str,
-    raw_width: &str,
-    raw_height: &str,
-    raw_line_options: Option<&&str>,
-) -> Result<command::Box> {
+fn parse_box(parameters: &[&str], line_number: usize) -> Result<command::Box> {
+    let raw_pos_x = *handle_missing(parameters.get(1), "x", "box", line_number);
+    let raw_pos_y = *handle_missing(parameters.get(2), "y", "box", line_number);
+    let raw_width = *handle_missing(parameters.get(3), "width", "box", line_number);
+    let raw_height = *handle_missing(parameters.get(4), "height", "box", line_number);
+    let raw_line_options = parameters.get(5);
     let position = Point {
         x: parse_mm(raw_pos_x)?,
         y: parse_mm(raw_pos_y)?,
@@ -96,12 +111,11 @@ fn parse_box(
     })
 }
 
-fn parse_photo(
-    raw_pos_x: &str,
-    raw_pos_y: &str,
-    raw_width: &str,
-    raw_height: &str,
-) -> Result<Photo, ParseFloatError> {
+fn parse_photo(parameters: &[&str], line_number: usize) -> Result<Photo, ParseFloatError> {
+    let raw_pos_x = *handle_missing(parameters.get(1), "x", "photo", line_number);
+    let raw_pos_y = *handle_missing(parameters.get(2), "y", "photo", line_number);
+    let raw_width = *handle_missing(parameters.get(3), "width", "photo", line_number);
+    let raw_height = *handle_missing(parameters.get(4), "height", "photo", line_number);
     let position = Point {
         x: parse_mm(raw_pos_x)?,
         y: parse_mm(raw_pos_y)?,
@@ -113,14 +127,13 @@ fn parse_photo(
     Ok(Photo { position, size })
 }
 
-fn parse_textbox(
-    raw_pos_x: &str,
-    raw_pos_y: &str,
-    raw_width: &str,
-    raw_height: &str,
-    raw_value: &str,
-    raw_font_size: Option<&&str>,
-) -> Result<TextBox> {
+fn parse_textbox(parameters: &[&str], line_number: usize) -> Result<TextBox> {
+    let raw_pos_x = *handle_missing(parameters.get(1), "x", "text box", line_number);
+    let raw_pos_y = *handle_missing(parameters.get(2), "y", "text box", line_number);
+    let raw_width = *handle_missing(parameters.get(3), "width", "text box", line_number);
+    let raw_height = *handle_missing(parameters.get(4), "height", "text box", line_number);
+    let raw_value = *handle_missing(parameters.get(5), "value", "text box", line_number);
+    let raw_font_size = parameters.get(6);
     let position = Point {
         x: parse_mm(raw_pos_x)?,
         y: parse_mm(raw_pos_y)?,
@@ -141,15 +154,19 @@ fn parse_textbox(
     })
 }
 
-fn parse_multilines(
-    raw_pos_x: &str,
-    raw_pos_y: &str,
-    raw_direction_x: &str,
-    raw_direction_y: &str,
-    raw_stroke_num: &str,
-    raw_offset_x: &str,
-    raw_offset_y: &str,
-) -> Result<MultiLines> {
+fn parse_multilines(parameters: &[&str], line_number: usize) -> Result<MultiLines> {
+    let raw_pos_x = *handle_missing(parameters.get(1), "x", "multi-lines", line_number);
+    let raw_pos_y = *handle_missing(parameters.get(2), "y", "multi-lines", line_number);
+    let raw_direction_x = *handle_missing(parameters.get(3), "dx", "multi-lines", line_number);
+    let raw_direction_y = *handle_missing(parameters.get(4), "dy", "multi-lines", line_number);
+    let raw_stroke_num = *handle_missing(
+        parameters.get(5),
+        "number of strokes",
+        "multi-lines",
+        line_number,
+    );
+    let raw_offset_x = *handle_missing(parameters.get(6), "sx", "multi-lines", line_number);
+    let raw_offset_y = *handle_missing(parameters.get(7), "sy", "multi-lines", line_number);
     let start_position = Point {
         x: parse_mm(raw_pos_x)?,
         y: parse_mm(raw_pos_y)?,
@@ -171,7 +188,11 @@ fn parse_multilines(
     })
 }
 
-fn parse_ymbox(raw_title: &str, raw_height: &str, raw_num: &str, raw_value: &str) -> Result<YMBox> {
+fn parse_ymbox(parameters: &[&str], line_number: usize) -> Result<YMBox> {
+    let raw_title = *handle_missing(parameters.get(1), "title", "ym box", line_number);
+    let raw_height = *handle_missing(parameters.get(2), "height", "ym box", line_number);
+    let raw_num = *handle_missing(parameters.get(3), "number", "ym box", line_number);
+    let raw_value = *handle_missing(parameters.get(4), "value", "ym box", line_number);
     Ok(YMBox {
         title: raw_title.to_owned(),
         height: parse_mm(raw_height)?,
@@ -180,31 +201,17 @@ fn parse_ymbox(raw_title: &str, raw_height: &str, raw_num: &str, raw_value: &str
     })
 }
 
-fn parse_miscbox(
-    raw_title: &str,
-    raw_y: &str,
-    raw_height: &str,
-    raw_value: &str,
-) -> Result<MiscBox> {
+fn parse_miscbox(parameters: &[&str], line_number: usize) -> Result<MiscBox> {
+    let raw_title = *handle_missing(parameters.get(1), "title", "misc box", line_number);
+    let raw_y = *handle_missing(parameters.get(2), "y", "misc box", line_number);
+    let raw_height = *handle_missing(parameters.get(3), "height", "misc box", line_number);
+    let raw_value = *handle_missing(parameters.get(4), "value", "misc box", line_number);
     Ok(MiscBox {
         title: raw_title.to_owned(),
         y: parse_mm(raw_y)?,
         height: parse_mm(raw_height)?,
         value: raw_value.to_owned(),
     })
-}
-
-fn handle_missing<T>(
-    expression: Option<T>,
-    value_name: &str,
-    command_name: &str,
-    line_number: usize,
-) -> T {
-    let message = format!(
-        "Missing {} value for {} at line: {}",
-        value_name, command_name, line_number
-    );
-    expression.expect(&message)
 }
 
 pub(crate) enum Command {
@@ -219,7 +226,6 @@ pub(crate) enum Command {
     MiscBox(MiscBox),
 }
 
-#[allow(clippy::too_many_lines)]
 pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
     let style_file = File::open(path)?;
     let reader = BufReader::new(style_file);
@@ -238,101 +244,39 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
         let command_name = split_line.first();
         match command_name {
             Some(&"string") => {
-                let raw_x = *handle_missing(split_line.get(1), "x", "string", index);
-                let raw_y = *handle_missing(split_line.get(2), "y", "string", index);
-                let raw_value = *handle_missing(split_line.get(3), "value", "string", index);
-                let raw_font_size =
-                    *handle_missing(split_line.get(4), "font size", "string", index);
-                items.push(Command::Text(parse_string([
-                    raw_x,
-                    raw_y,
-                    raw_value,
-                    raw_font_size,
-                ])?));
+                let string = parse_string(&split_line, index)?;
+                items.push(Command::Text(string));
             }
             Some(&"line") => {
-                let raw_starting_x = *handle_missing(split_line.get(1), "x1", "line", index);
-                let raw_starting_y = *handle_missing(split_line.get(2), "2", "line", index);
-                let raw_ending_x = *handle_missing(split_line.get(3), "x2", "line", index);
-                let raw_ending_y = *handle_missing(split_line.get(4), "y2", "line", index);
-                items.push(Command::Line(parse_line(
-                    raw_starting_x,
-                    raw_starting_y,
-                    raw_ending_x,
-                    raw_ending_y,
-                )?));
+                let line_command = parse_line(&split_line, index)?;
+                items.push(Command::Line(line_command));
             }
             Some(&"box") => {
-                let raw_pos_x = *handle_missing(split_line.get(1), "x", "box", index);
-                let raw_pos_y = *handle_missing(split_line.get(2), "y", "box", index);
-                let raw_width = *handle_missing(split_line.get(3), "width", "box", index);
-                let raw_height = *handle_missing(split_line.get(4), "height", "box", index);
-                let raw_option = split_line.get(5);
-                items.push(Command::Box(parse_box(
-                    raw_pos_x, raw_pos_y, raw_width, raw_height, raw_option,
-                )?));
+                let box_command = parse_box(&split_line, index)?;
+                items.push(Command::Box(box_command));
             }
             Some(&"photo") => {
-                let raw_pos_x = *handle_missing(split_line.get(1), "x", "photo", index);
-                let raw_pos_y = *handle_missing(split_line.get(2), "y", "photo", index);
-                let raw_width = *handle_missing(split_line.get(3), "width", "photo", index);
-                let raw_height = *handle_missing(split_line.get(4), "height", "photo", index);
-                items.push(Command::Photo(parse_photo(
-                    raw_pos_x, raw_pos_y, raw_width, raw_height,
-                )?));
+                let photo = parse_photo(&split_line, index)?;
+                items.push(Command::Photo(photo));
             }
             Some(&"new_page") => {
                 items.push(Command::NewPage);
             }
             Some(&"textbox") => {
-                let raw_pos_x = *handle_missing(split_line.get(1), "x", "text box", index);
-                let raw_pos_y = *handle_missing(split_line.get(2), "y", "text box", index);
-                let raw_width = *handle_missing(split_line.get(3), "width", "text box", index);
-                let raw_height = *handle_missing(split_line.get(4), "height", "text box", index);
-                let raw_value = *handle_missing(split_line.get(5), "value", "text box", index);
-                let raw_option = split_line.get(6);
-                items.push(Command::TextBox(parse_textbox(
-                    raw_pos_x, raw_pos_y, raw_width, raw_height, raw_value, raw_option,
-                )?));
+                let textbox = parse_textbox(&split_line, index)?;
+                items.push(Command::TextBox(textbox));
             }
             Some(&"multi_lines") => {
-                let raw_pos_x = *handle_missing(split_line.get(1), "x", "multi-lines", index);
-                let raw_pos_y = *handle_missing(split_line.get(2), "y", "multi-lines", index);
-                let raw_direction_x =
-                    *handle_missing(split_line.get(3), "dx", "multi-lines", index);
-                let raw_direction_y =
-                    *handle_missing(split_line.get(4), "dy", "multi-lines", index);
-                let raw_stroke_num =
-                    *handle_missing(split_line.get(5), "number of strokes", "multi-lines", index);
-                let raw_offset_x = *handle_missing(split_line.get(6), "sx", "multi-lines", index);
-                let raw_offset_y = *handle_missing(split_line.get(7), "sy", "multi-lines", index);
-                items.push(Command::MultiLines(parse_multilines(
-                    raw_pos_x,
-                    raw_pos_y,
-                    raw_direction_x,
-                    raw_direction_y,
-                    raw_stroke_num,
-                    raw_offset_x,
-                    raw_offset_y,
-                )?));
+                let multi_lines = parse_multilines(&split_line, index)?;
+                items.push(Command::MultiLines(multi_lines));
             }
             Some(&"ymbox") => {
-                let raw_title = *handle_missing(split_line.get(1), "title", "ym box", index);
-                let raw_height = *handle_missing(split_line.get(2), "height", "ym box", index);
-                let raw_num = *handle_missing(split_line.get(3), "number", "ym box", index);
-                let raw_value = *handle_missing(split_line.get(4), "value", "ym box", index);
-                items.push(Command::YMBox(parse_ymbox(
-                    raw_title, raw_height, raw_num, raw_value,
-                )?));
+                let ymbox = parse_ymbox(&split_line, index)?;
+                items.push(Command::YMBox(ymbox));
             }
             Some(&"miscbox") => {
-                let raw_title = *handle_missing(split_line.get(1), "title", "misc box", index);
-                let raw_y = *handle_missing(split_line.get(2), "y", "misc box", index);
-                let raw_height = *handle_missing(split_line.get(3), "height", "misc box", index);
-                let raw_value = *handle_missing(split_line.get(4), "value", "misc box", index);
-                items.push(Command::MiscBox(parse_miscbox(
-                    raw_title, raw_y, raw_height, raw_value,
-                )?));
+                let miscbox = parse_miscbox(&split_line, index)?;
+                items.push(Command::MiscBox(miscbox));
             }
             _ => {
                 return Err(anyhow!(
