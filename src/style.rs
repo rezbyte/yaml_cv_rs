@@ -2,197 +2,15 @@
 
 use anyhow::{anyhow, Result};
 use printpdf::Mm;
-use std::fmt::Result as FmtResult;
-use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::num::ParseFloatError;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::vec::Vec;
-
-// Represents a position in 2D space.
-pub(crate) struct Point {
-    pub(crate) x: Mm,
-    pub(crate) y: Mm,
-}
-
-impl Display for Point {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}mm, {}mm)", self.x.0, self.y.0)
-    }
-}
-
-// Represents the size of a 2D object.
-pub(crate) struct Size {
-    pub(crate) width: Mm,
-    pub(crate) height: Mm,
-}
-
-impl Display for Size {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}mm, {}mm)", self.width.0, self.height.0)
-    }
-}
-
-// Text.
-pub(crate) struct Text {
-    pub(crate) position: Point,
-    pub(crate) value: String,
-    pub(crate) font_size: f32,
-}
-
-impl Display for Text {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}, {}, {})", self.position, self.value, self.font_size)
-    }
-}
-
-/// A line.
-pub(crate) struct Line {
-    pub(crate) start_position: Point,
-    pub(crate) end_position: Point,
-}
-
-impl Display for Line {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}, {})", self.start_position, self.end_position)
-    }
-}
-
-pub(crate) enum LineStyle {
-    Solid,
-    Dashed,
-}
-
-impl Display for LineStyle {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        match *self {
-            LineStyle::Solid => write!(f, "solid"),
-            LineStyle::Dashed => write!(f, "dashed"),
-        }
-    }
-}
-
-impl FromStr for LineStyle {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        match s {
-            "solid" => Ok(LineStyle::Solid),
-            "dashed" => Ok(LineStyle::Dashed),
-            _ => Err(anyhow!("Failed to convert to LineStyle from string")),
-        }
-    }
-}
-
-/// A box.
-pub(crate) struct Box {
-    pub(crate) position: Point,
-    pub(crate) size: Size,
-    pub(crate) line_width: Option<f32>,
-    pub(crate) line_style: Option<LineStyle>,
-}
-
-impl Display for Box {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.position,
-            self.size,
-            self.line_width.unwrap_or(12.0),
-            self.line_style.as_ref().unwrap_or(&LineStyle::Solid)
-        )
-    }
-}
-
-/// The postion & size of the `photo` in the YAML file.
-pub(crate) struct Photo {
-    pub(crate) position: Point,
-    pub(crate) size: Size,
-}
-
-impl Display for Photo {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "({}, {})", self.position, self.size,)
-    }
-}
-
-/// A text box.
-pub(crate) struct TextBox {
-    pub(crate) position: Point,
-    pub(crate) size: Size,
-    pub(crate) value: String,
-    pub(crate) font_size: Option<f32>,
-}
-
-impl Display for TextBox {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.position,
-            self.size,
-            self.value,
-            self.font_size.unwrap_or(12.0),
-        )
-    }
-}
-
-/// A set of procedurally generated lines.
-pub(crate) struct MultiLines {
-    pub(crate) start_position: Point,
-    pub(crate) direction: Point,
-    pub(crate) stroke_number: u32,
-    pub(crate) position_offset: Point,
-}
-
-impl Display for MultiLines {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.start_position, self.direction, self.stroke_number, self.position_offset,
-        )
-    }
-}
-
-/// A time table.
-pub(crate) struct YMBox {
-    pub(crate) title: String,
-    pub(crate) height: Mm,
-    pub(crate) num: u32,
-    pub(crate) value: String,
-}
-
-impl Display for YMBox {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.title, self.height.0, self.num, self.value,
-        )
-    }
-}
-
-/// A text box with a title.
-pub(crate) struct MiscBox {
-    pub(crate) title: String,
-    pub(crate) y: Mm,
-    pub(crate) height: Mm,
-    pub(crate) value: String,
-}
-
-impl Display for MiscBox {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(
-            f,
-            "({}, {}, {}, {})",
-            self.title, self.y.0, self.height.0, self.value,
-        )
-    }
-}
+mod command;
+mod core;
+use crate::style::command::{Line, MiscBox, MultiLines, Photo, Text, TextBox, YMBox};
+use crate::style::core::{LineStyle, Point, Size};
 
 fn parse_mm(raw_mm: &str) -> Result<Mm, ParseFloatError> {
     let mm_number = raw_mm.trim_end_matches("mm");
@@ -252,7 +70,7 @@ fn parse_box(
     raw_width: &str,
     raw_height: &str,
     raw_line_options: Option<&&str>,
-) -> Result<Box> {
+) -> Result<command::Box> {
     let position = Point {
         x: parse_mm(raw_pos_x)?,
         y: parse_mm(raw_pos_y)?,
@@ -270,7 +88,7 @@ fn parse_box(
             line_style = Some(parse_line_style(raw_option)?);
         }
     };
-    Ok(Box {
+    Ok(command::Box {
         position,
         size,
         line_width,
@@ -379,7 +197,7 @@ fn parse_miscbox(
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
-    Box(Box),
+    Box(command::Box),
     Photo(Photo),
     NewPage,
     TextBox(TextBox),
