@@ -41,12 +41,6 @@ fn parse_option<T: std::str::FromStr>(name: &str, raw_option: &str) -> Result<T,
     Ok(option_value)
 }
 
-fn parse_line_style(raw_option: &str) -> Result<LineStyle> {
-    let option_number = raw_option.trim_start_matches("line_style=");
-    let option_value = option_number.parse::<LineStyle>()?;
-    Ok(option_value)
-}
-
 fn parse_string(parameters: &[&str], line_number: usize) -> Result<Text> {
     let raw_x = *handle_missing(parameters.get(1), "x", "string", line_number);
     let raw_y = *handle_missing(parameters.get(2), "y", "string", line_number);
@@ -106,7 +100,7 @@ fn parse_box(parameters: &[&str], line_number: usize) -> Result<command::Box> {
         if raw_option.starts_with("line_width") {
             line_width = Some(parse_option("line_width", raw_option)?);
         } else if raw_option.starts_with("line_style") {
-            line_style = Some(parse_line_style(raw_option)?);
+            line_style = Some(parse_option("line_style", raw_option)?);
         }
     };
     Ok(command::Box {
