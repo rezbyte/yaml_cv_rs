@@ -194,6 +194,19 @@ fn parse_miscbox(
     })
 }
 
+fn handle_missing<T>(
+    expression: Option<T>,
+    value_name: &str,
+    command_name: &str,
+    line_number: usize,
+) -> T {
+    let message = format!(
+        "Missing {} value for {} at line: {}",
+        value_name, command_name, line_number
+    );
+    expression.expect(&message)
+}
+
 pub(crate) enum Command {
     Text(Text),
     Line(Line),
@@ -211,7 +224,7 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
     let style_file = File::open(path)?;
     let reader = BufReader::new(style_file);
     let mut items: Vec<Command> = Vec::new();
-    for (__index, line) in reader.lines().enumerate() {
+    for (index, line) in reader.lines().enumerate() {
         let line = line?;
         // Handle comments
         if line.starts_with('#') {
@@ -225,12 +238,11 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
         let command_name = split_line.first();
         match command_name {
             Some(&"string") => {
-                let raw_x: &str = split_line.get(1).expect("Missing x value for string!");
-                let raw_y = split_line.get(2).expect("Missing y value for string!");
-                let raw_value = split_line.get(3).expect("Missing value for string!");
-                let raw_font_size = split_line
-                    .get(4)
-                    .expect("Missing font size value for string!");
+                let raw_x = *handle_missing(split_line.get(1), "x", "string", index);
+                let raw_y = *handle_missing(split_line.get(2), "y", "string", index);
+                let raw_value = *handle_missing(split_line.get(3), "value", "string", index);
+                let raw_font_size =
+                    *handle_missing(split_line.get(4), "font size", "string", index);
                 items.push(Command::Text(parse_string([
                     raw_x,
                     raw_y,
@@ -239,10 +251,10 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 ])?));
             }
             Some(&"line") => {
-                let raw_starting_x = split_line.get(1).expect("Missing x value for line!");
-                let raw_starting_y = split_line.get(2).expect("Missing y value for line!");
-                let raw_ending_x = split_line.get(3).expect("Missing x value for line!");
-                let raw_ending_y = split_line.get(4).expect("Missing y value for line!");
+                let raw_starting_x = *handle_missing(split_line.get(1), "x1", "line", index);
+                let raw_starting_y = *handle_missing(split_line.get(2), "2", "line", index);
+                let raw_ending_x = *handle_missing(split_line.get(3), "x2", "line", index);
+                let raw_ending_y = *handle_missing(split_line.get(4), "y2", "line", index);
                 items.push(Command::Line(parse_line(
                     raw_starting_x,
                     raw_starting_y,
@@ -251,20 +263,20 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 )?));
             }
             Some(&"box") => {
-                let raw_pos_x = split_line.get(1).expect("Missing x position for box!");
-                let raw_pos_y = split_line.get(2).expect("Missing y position for box!");
-                let raw_width = split_line.get(3).expect("Missing width for box!");
-                let raw_height = split_line.get(4).expect("Missing height for box!");
+                let raw_pos_x = *handle_missing(split_line.get(1), "x", "box", index);
+                let raw_pos_y = *handle_missing(split_line.get(2), "y", "box", index);
+                let raw_width = *handle_missing(split_line.get(3), "width", "box", index);
+                let raw_height = *handle_missing(split_line.get(4), "height", "box", index);
                 let raw_option = split_line.get(5);
                 items.push(Command::Box(parse_box(
                     raw_pos_x, raw_pos_y, raw_width, raw_height, raw_option,
                 )?));
             }
             Some(&"photo") => {
-                let raw_pos_x = split_line.get(1).expect("Missing x position for photo!");
-                let raw_pos_y = split_line.get(2).expect("Missing y position for photo!");
-                let raw_width = split_line.get(3).expect("Missing width for box!");
-                let raw_height = split_line.get(4).expect("Missing height for box!");
+                let raw_pos_x = *handle_missing(split_line.get(1), "x", "photo", index);
+                let raw_pos_y = *handle_missing(split_line.get(2), "y", "photo", index);
+                let raw_width = *handle_missing(split_line.get(3), "width", "photo", index);
+                let raw_height = *handle_missing(split_line.get(4), "height", "photo", index);
                 items.push(Command::Photo(parse_photo(
                     raw_pos_x, raw_pos_y, raw_width, raw_height,
                 )?));
@@ -273,38 +285,27 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 items.push(Command::NewPage);
             }
             Some(&"textbox") => {
-                let raw_pos_x = split_line.get(1).expect("Missing x position for text box!");
-                let raw_pos_y = split_line.get(2).expect("Missing y position for text box!");
-                let raw_width = split_line.get(3).expect("Missing width for text box!");
-                let raw_height = split_line.get(4).expect("Missing height for text box!");
-                let raw_value = split_line.get(5).expect("Missing value for text box!");
+                let raw_pos_x = *handle_missing(split_line.get(1), "x", "text box", index);
+                let raw_pos_y = *handle_missing(split_line.get(2), "y", "text box", index);
+                let raw_width = *handle_missing(split_line.get(3), "width", "text box", index);
+                let raw_height = *handle_missing(split_line.get(4), "height", "text box", index);
+                let raw_value = *handle_missing(split_line.get(5), "value", "text box", index);
                 let raw_option = split_line.get(6);
                 items.push(Command::TextBox(parse_textbox(
                     raw_pos_x, raw_pos_y, raw_width, raw_height, raw_value, raw_option,
                 )?));
             }
             Some(&"multi_lines") => {
-                let raw_pos_x = split_line
-                    .get(1)
-                    .expect("Missing x position for multi-lines!");
-                let raw_pos_y = split_line
-                    .get(2)
-                    .expect("Missing y position for multi-lines!");
-                let raw_direction_x = split_line
-                    .get(3)
-                    .expect("Missing dx position for multi-lines!");
-                let raw_direction_y = split_line
-                    .get(4)
-                    .expect("Missing dy position for multi-lines!");
-                let raw_stroke_num = split_line
-                    .get(5)
-                    .expect("Missing number of strokes for multi-lines!");
-                let raw_offset_x = split_line
-                    .get(6)
-                    .expect("Missing sx position for multi-lines!");
-                let raw_offset_y = split_line
-                    .get(7)
-                    .expect("Missing sy position for multi-lines!");
+                let raw_pos_x = *handle_missing(split_line.get(1), "x", "multi-lines", index);
+                let raw_pos_y = *handle_missing(split_line.get(2), "y", "multi-lines", index);
+                let raw_direction_x =
+                    *handle_missing(split_line.get(3), "dx", "multi-lines", index);
+                let raw_direction_y =
+                    *handle_missing(split_line.get(4), "dy", "multi-lines", index);
+                let raw_stroke_num =
+                    *handle_missing(split_line.get(5), "number of strokes", "multi-lines", index);
+                let raw_offset_x = *handle_missing(split_line.get(6), "sx", "multi-lines", index);
+                let raw_offset_y = *handle_missing(split_line.get(7), "sy", "multi-lines", index);
                 items.push(Command::MultiLines(parse_multilines(
                     raw_pos_x,
                     raw_pos_y,
@@ -316,26 +317,26 @@ pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
                 )?));
             }
             Some(&"ymbox") => {
-                let raw_title = split_line.get(1).expect("Missing title for ym box!");
-                let raw_height = split_line.get(2).expect("Missing height for ym box!");
-                let raw_num = split_line.get(3).expect("Missing number for ym box!");
-                let raw_value = split_line.get(4).expect("Missing height for ym box!");
+                let raw_title = *handle_missing(split_line.get(1), "title", "ym box", index);
+                let raw_height = *handle_missing(split_line.get(2), "height", "ym box", index);
+                let raw_num = *handle_missing(split_line.get(3), "number", "ym box", index);
+                let raw_value = *handle_missing(split_line.get(4), "value", "ym box", index);
                 items.push(Command::YMBox(parse_ymbox(
                     raw_title, raw_height, raw_num, raw_value,
                 )?));
             }
             Some(&"miscbox") => {
-                let raw_title = split_line.get(1).expect("Missing title for misc box!");
-                let raw_y = split_line.get(2).expect("Missing y value for misc box!");
-                let raw_height = split_line.get(3).expect("Missing height for misc box!");
-                let raw_value = split_line.get(4).expect("Missing value for misc box!");
+                let raw_title = *handle_missing(split_line.get(1), "title", "misc box", index);
+                let raw_y = *handle_missing(split_line.get(2), "y", "misc box", index);
+                let raw_height = *handle_missing(split_line.get(3), "height", "misc box", index);
+                let raw_value = *handle_missing(split_line.get(4), "value", "misc box", index);
                 items.push(Command::MiscBox(parse_miscbox(
                     raw_title, raw_y, raw_height, raw_value,
                 )?));
             }
             _ => {
                 return Err(anyhow!(
-                    "Unsupported command {}!",
+                    "Unsupported command: {}!",
                     command_name.unwrap_or(&"")
                 ))
             }
