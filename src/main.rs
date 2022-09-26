@@ -69,9 +69,9 @@ use anyhow::Result;
 use clap::Parser;
 use serde_yaml::from_str;
 use std::fs::read_to_string;
-use style::Command;
 
 mod args;
+mod cv;
 mod style;
 mod yaml;
 
@@ -83,51 +83,7 @@ fn main() -> Result<()> {
 
     let style_file = style::read(cli.style)?;
 
-    println!("Hello, {}!", input_file.name_kana);
-
-    for command in style_file {
-        match command {
-            Command::Text(text) => {
-                println!("The string '{}' was found!", text);
-            }
-            Command::Line(line) => {
-                println!("The line '{}' was found!", line);
-            }
-            Command::Box(the_box) => {
-                println!("The box '{}' was found!", the_box);
-            }
-            Command::Photo(photo) => {
-                println!("The photo '{}' was found!", photo);
-            }
-            Command::NewPage => {
-                println!("New page was found!");
-            }
-            Command::TextBox(textbox) => {
-                println!("The text box '{}' was found!", textbox);
-            }
-            Command::MultiLines(multilines) => {
-                println!("The multi-lines '{}' was found!", multilines);
-            }
-            Command::YMBox(ymbox) => {
-                println!("The YM box '{}' was found!", ymbox);
-            }
-            Command::MiscBox(miscbox) => {
-                println!("The misc box '{}' was found!", miscbox);
-            }
-            Command::History(history) => {
-                println!("The history '{}' was found!", history);
-            }
-            Command::EducationExperience(education_experience) => {
-                println!(
-                    "The education experience '{}' was found!",
-                    education_experience
-                );
-            }
-            Command::Lines(lines) => {
-                println!("The lines '{}' was found!", lines);
-            }
-        }
-    }
+    cv::make(cli.output.as_path(), style_file, input_file)?;
 
     Ok(())
 }

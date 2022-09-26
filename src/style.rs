@@ -8,8 +8,8 @@ use std::iter::Enumerate;
 use std::num::ParseFloatError;
 use std::path::PathBuf;
 use std::vec::Vec;
-mod command;
-mod core;
+pub(crate) mod command;
+pub(crate) mod core;
 use crate::style::command::{
     EducationExperience, History, Line, Lines, MiscBox, MultiLines, Photo, Text, TextBox, YMBox,
 };
@@ -42,12 +42,12 @@ fn parse_option<T: std::str::FromStr>(name: &str, raw_option: &str) -> Result<T,
 }
 
 fn parse_font_options(parameters: &[&str]) -> Result<FontOptions> {
-    let mut font_size: Option<f32> = None;
+    let mut font_size: Option<f64> = None;
     let mut font_face: Option<String> = None;
     for parameter in parameters {
         if let Some((command, value)) = (*parameter).to_owned().split_once('=') {
             match command {
-                "font_size" => font_size = Some(value.parse::<f32>()?),
+                "font_size" => font_size = Some(value.parse::<f64>()?),
                 "font_face" => font_face = Some(value.to_owned()),
                 _ => continue,
             }

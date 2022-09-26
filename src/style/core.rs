@@ -6,9 +6,9 @@ use std::fmt::Result as FmtResult;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-const DEFAULT_FONT_FACE: &str = "mincho";
-const DEFAULT_FONT_SIZE: f32 = 12.0;
-const DEFAULT_LINE_WIDTH: f32 = 0.5;
+pub(crate) const DEFAULT_FONT_FACE: &str = "mincho";
+pub(crate) const DEFAULT_FONT_SIZE: f64 = 12.0_f64;
+pub(crate) const DEFAULT_LINE_WIDTH: f32 = 0.5;
 
 // Represents a position in 2D space.
 pub(crate) struct Point {
@@ -63,7 +63,7 @@ impl FromStr for LineStyle {
 
 // The options to customize the font.
 pub(crate) struct FontOptions {
-    pub(crate) font_size: Option<f32>,
+    pub(crate) font_size: Option<f64>,
     pub(crate) font_face: Option<String>,
 }
 

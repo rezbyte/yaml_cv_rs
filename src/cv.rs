@@ -1,0 +1,115 @@
+//! Creates the CV in a PDF file.
+
+use crate::style::command::{Line, Photo, Text};
+use crate::style::core::DEFAULT_FONT_SIZE;
+use crate::style::Command;
+use crate::yaml::YAMLArgs;
+use anyhow::Result;
+use printpdf::image_crate::codecs::jpeg::JpegDecoder;
+use printpdf::{Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfLayerReference, Point};
+use std::fs::File;
+use std::io::BufWriter;
+use std::path::Path;
+
+const A4_WIDTH: f64 = 210.0_f64;
+const A4_HEIGHT: f64 = 297.0_f64;
+const DPI: f64 = 75.0_f64;
+
+fn draw_string(string: Text, layer: &PdfLayerReference, font: &IndirectFontRef) {
+    layer.use_text(
+        string.value,
+        string.font_options.font_size.unwrap_or(DEFAULT_FONT_SIZE),
+        string.position.x,
+        string.position.y,
+        font,
+    );
+}
+
+fn draw_line(line: &Line, layer: &PdfLayerReference) {
+    let points = vec![
+        (
+            Point::new(line.start_position.x, line.start_position.y),
+            false,
+        ),
+        (Point::new(line.end_position.x, line.end_position.y), false),
+    ];
+    layer.add_shape(printpdf::Line {
+        points,
+        is_closed: true,
+        has_fill: false,
+        has_stroke: true,
+        is_clipping_path: false,
+    });
+}
+
+fn draw_photo(photo: &Photo, image: Image, layer: &PdfLayerReference) {
+    let transform = ImageTransform {
+        translate_x: Some(photo.position.x),
+        translate_y: Some(photo.position.y),
+        rotate: None,
+        scale_x: Some(photo.size.width.0),
+        scale_y: Some(photo.size.height.0),
+        dpi: Some(DPI),
+    };
+    image.add_to_layer(layer.clone(), transform);
+}
+
+fn load_image(path: &Path) -> Result<Image> {
+    let image_file = File::open(path)?;
+    let image = Image::try_from(JpegDecoder::new(&image_file)?)?;
+    Ok(image)
+}
+
+pub(crate) fn make(output_path: &Path, style_script: Vec<Command>, inputs: YAMLArgs) -> Result<()> {
+    let (doc, page1, layer1) = PdfDocument::new("CV", Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
+    let mut current_layer = doc.get_page(page1).get_layer(layer1);
+    let font = doc.add_external_font(File::open("fonts/ipaexg.ttf")?)?;
+    let image_path = Path::new("./photo.jpg");
+    for command in style_script {
+        match command {
+            Command::Text(text) => {
+                draw_string(text, &current_layer, &font);
+            }
+            Command::Line(line) => {
+                draw_line(&line, &current_layer);
+            }
+            Command::Box(the_box) => {
+                println!("The box '{}' was found!", the_box);
+            }
+            Command::Photo(photo) => {
+                let image = load_image(image_path)?;
+                draw_photo(&photo, image, &current_layer);
+            }
+            Command::NewPage => {
+                let (new_page, new_layer) = doc.add_page(Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
+                current_layer = doc.get_page(new_page).get_layer(new_layer);
+            }
+            Command::TextBox(textbox) => {
+                println!("The text box '{}' was found!", textbox);
+            }
+            Command::MultiLines(multilines) => {
+                println!("The multi-lines '{}' was found!", multilines);
+            }
+            Command::YMBox(ymbox) => {
+                println!("The YM box '{}' was found!", ymbox);
+            }
+            Command::MiscBox(miscbox) => {
+                println!("The misc box '{}' was found!", miscbox);
+            }
+            Command::History(history) => {
+                println!("The history '{}' was found!", history);
+            }
+            Command::EducationExperience(education_experience) => {
+                println!(
+                    "The education experience '{}' was found!",
+                    education_experience
+                );
+            }
+            Command::Lines(lines) => {
+                println!("The lines '{}' was found!", lines);
+            }
+        }
+    }
+    doc.save(&mut BufWriter::new(File::create(output_path)?))?;
+    Ok(())
+}
