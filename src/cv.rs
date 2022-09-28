@@ -1,7 +1,7 @@
 //! Creates the CV in a PDF file.
 
-use crate::style::command::{Box, Line, Photo, Text};
-use crate::style::core::{Point, DEFAULT_FONT_SIZE};
+use crate::style::command::{Box, Line, Photo, Text, TextBox};
+use crate::style::core::{LineOptions, Point, DEFAULT_FONT_SIZE};
 use crate::style::Command;
 use crate::yaml::YAMLArgs;
 use anyhow::Result;
@@ -102,6 +102,27 @@ fn load_image(path: &Path) -> Result<Image> {
     Ok(image)
 }
 
+fn draw_textbox(textbox: &TextBox, layer: &PdfLayerReference, font: &IndirectFontRef) {
+    let bounding_box = Box {
+        position: textbox.position,
+        size: textbox.size,
+        line_options: LineOptions::default(),
+    };
+
+    let center_position = Point {
+        x: textbox.position.x + (textbox.size.width * 0.5_f64),
+        y: textbox.position.y + (textbox.size.height * 0.5_f64),
+    };
+    let string = Text {
+        position: center_position,
+        value: textbox.value.clone(),
+        font_options: textbox.font_options.clone(),
+    };
+
+    draw_box(&bounding_box, layer);
+    draw_string(string, layer, font);
+}
+
 pub(crate) fn make(output_path: &Path, style_script: Vec<Command>, inputs: YAMLArgs) -> Result<()> {
     let (doc, page1, layer1) = PdfDocument::new("CV", Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
@@ -127,7 +148,7 @@ pub(crate) fn make(output_path: &Path, style_script: Vec<Command>, inputs: YAMLA
                 current_layer = doc.get_page(new_page).get_layer(new_layer);
             }
             Command::TextBox(textbox) => {
-                println!("The text box '{}' was found!", textbox);
+                draw_textbox(&textbox, &current_layer, &font);
             }
             Command::MultiLines(multilines) => {
                 println!("The multi-lines '{}' was found!", multilines);
