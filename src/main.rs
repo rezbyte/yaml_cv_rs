@@ -78,12 +78,17 @@ mod yaml;
 fn main() -> Result<()> {
     let cli = args::Args::parse();
 
-    let raw_input_file = read_to_string(cli.input)?;
+    let raw_input_file = read_to_string(&cli.input)?;
     let input_file: yaml::YAMLArgs = from_str(&raw_input_file)?;
 
-    let style_file = style::read(cli.style)?;
+    let style_file = style::read(&cli.style)?;
 
     cv::make(cli.output.as_path(), style_file, &input_file)?;
+
+    println!("input  file: {}", &cli.input.display());
+    println!("style  file: {}", &cli.style.display());
+    println!("output file: {}", &cli.output.display());
+    println!("Done.");
 
     Ok(())
 }

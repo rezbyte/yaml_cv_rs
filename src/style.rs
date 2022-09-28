@@ -318,13 +318,13 @@ pub(crate) enum Command {
 }
 
 type LineIterator = Enumerate<std::io::Lines<BufReader<File>>>;
-fn get_lines(path: PathBuf) -> std::io::Result<LineIterator> {
+fn get_lines(path: &PathBuf) -> std::io::Result<LineIterator> {
     let style_file = File::open(path)?;
     let reader = BufReader::new(style_file);
     Ok(reader.lines().enumerate())
 }
 
-pub(crate) fn read(path: PathBuf) -> Result<Vec<Command>> {
+pub(crate) fn read(path: &PathBuf) -> Result<Vec<Command>> {
     let mut items: Vec<Command> = Vec::new();
     for (index, line) in get_lines(path)? {
         let line = line?;
