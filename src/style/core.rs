@@ -11,6 +11,7 @@ pub(crate) const DEFAULT_FONT_SIZE: f64 = 12.0_f64;
 pub(crate) const DEFAULT_LINE_WIDTH: f32 = 0.5;
 
 // Represents a position in 2D space.
+#[derive(Copy, Clone)]
 pub(crate) struct Point {
     pub(crate) x: Mm,
     pub(crate) y: Mm,
@@ -23,6 +24,7 @@ impl Display for Point {
 }
 
 // Represents the size of a 2D object.
+#[derive(Copy, Clone)]
 pub(crate) struct Size {
     pub(crate) width: Mm,
     pub(crate) height: Mm,
@@ -35,6 +37,7 @@ impl Display for Size {
 }
 
 /// The patterns that can be used to draw lines.
+#[derive(Copy, Clone)]
 pub(crate) enum LineStyle {
     Solid,
     Dashed,
@@ -62,6 +65,7 @@ impl FromStr for LineStyle {
 }
 
 // The options to customize the font.
+#[derive(Clone)]
 pub(crate) struct FontOptions {
     pub(crate) font_size: Option<f64>,
     pub(crate) font_face: Option<String>,
@@ -90,6 +94,7 @@ impl Display for FontOptions {
 }
 
 // The options to customize the line.
+#[derive(Copy, Clone)]
 pub(crate) struct LineOptions {
     pub(crate) line_width: Option<f32>,
     pub(crate) line_style: Option<LineStyle>,

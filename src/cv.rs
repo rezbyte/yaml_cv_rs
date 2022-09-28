@@ -1,12 +1,12 @@
 //! Creates the CV in a PDF file.
 
-use crate::style::command::{Line, Photo, Text};
-use crate::style::core::DEFAULT_FONT_SIZE;
+use crate::style::command::{Box, Line, Photo, Text};
+use crate::style::core::{Point, DEFAULT_FONT_SIZE};
 use crate::style::Command;
 use crate::yaml::YAMLArgs;
 use anyhow::Result;
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
-use printpdf::{Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfLayerReference, Point};
+use printpdf::{Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfLayerReference};
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
@@ -28,10 +28,13 @@ fn draw_string(string: Text, layer: &PdfLayerReference, font: &IndirectFontRef) 
 fn draw_line(line: &Line, layer: &PdfLayerReference) {
     let points = vec![
         (
-            Point::new(line.start_position.x, line.start_position.y),
+            printpdf::Point::new(line.start_position.x, line.start_position.y),
             false,
         ),
-        (Point::new(line.end_position.x, line.end_position.y), false),
+        (
+            printpdf::Point::new(line.end_position.x, line.end_position.y),
+            false,
+        ),
     ];
     layer.add_shape(printpdf::Line {
         points,
@@ -40,6 +43,45 @@ fn draw_line(line: &Line, layer: &PdfLayerReference) {
         has_stroke: true,
         is_clipping_path: false,
     });
+}
+
+fn draw_box(the_box: &Box, layer: &PdfLayerReference) {
+    let bottom_line = Line {
+        start_position: the_box.position,
+        end_position: Point {
+            x: the_box.position.x + the_box.size.width,
+            y: the_box.position.y,
+        },
+        line_options: the_box.line_options,
+    };
+    let right_line = Line {
+        start_position: bottom_line.end_position,
+        end_position: Point {
+            x: the_box.position.x + the_box.size.width,
+            y: the_box.position.y + the_box.size.height,
+        },
+        line_options: the_box.line_options,
+    };
+    let top_line = Line {
+        start_position: right_line.end_position,
+        end_position: Point {
+            x: the_box.position.x,
+            y: the_box.position.y + the_box.size.height,
+        },
+        line_options: the_box.line_options,
+    };
+    let left_line = Line {
+        start_position: top_line.end_position,
+        end_position: Point {
+            x: the_box.position.x,
+            y: the_box.position.y,
+        },
+        line_options: the_box.line_options,
+    };
+    draw_line(&bottom_line, layer);
+    draw_line(&right_line, layer);
+    draw_line(&top_line, layer);
+    draw_line(&left_line, layer);
 }
 
 fn draw_photo(photo: &Photo, image: Image, layer: &PdfLayerReference) {
@@ -74,7 +116,7 @@ pub(crate) fn make(output_path: &Path, style_script: Vec<Command>, inputs: YAMLA
                 draw_line(&line, &current_layer);
             }
             Command::Box(the_box) => {
-                println!("The box '{}' was found!", the_box);
+                draw_box(&the_box, &current_layer);
             }
             Command::Photo(photo) => {
                 let image = load_image(image_path)?;
