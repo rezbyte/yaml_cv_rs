@@ -30,8 +30,8 @@ fn draw_string(string: Text, layer: &PdfLayerReference, font: &IndirectFontRef) 
 
 fn draw_line(line: &Line, layer: &PdfLayerReference) {
     let points: std::vec::Vec<(printpdf::Point, _)> = vec![
-        (line.start_position.into(), false),
-        (line.end_position.into(), false),
+        ((line.start_position).into(), false),
+        ((line.start_position + line.end_position).into(), false),
     ];
     layer.add_shape(printpdf::Line {
         points,
