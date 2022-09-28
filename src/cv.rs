@@ -27,15 +27,9 @@ fn draw_string(string: Text, layer: &PdfLayerReference, font: &IndirectFontRef) 
 }
 
 fn draw_line(line: &Line, layer: &PdfLayerReference) {
-    let points = vec![
-        (
-            PtPoint::new(line.start_position.x, line.start_position.y),
-            false,
-        ),
-        (
-            PtPoint::new(line.end_position.x, line.end_position.y),
-            false,
-        ),
+    let points: std::vec::Vec<(printpdf::Point, _)> = vec![
+        (line.start_position.into(), false),
+        (line.end_position.into(), false),
     ];
     layer.add_shape(printpdf::Line {
         points,
@@ -47,7 +41,7 @@ fn draw_line(line: &Line, layer: &PdfLayerReference) {
 }
 
 fn draw_box(the_box: &Box, layer: &PdfLayerReference) {
-    let points = vec![
+    let points: std::vec::Vec<(printpdf::Point, _)> = vec![
         (
             PtPoint::new(the_box.position.x + the_box.size.width, the_box.position.y),
             false,

@@ -2,6 +2,7 @@
 
 use anyhow::{anyhow, Result};
 use printpdf::Mm;
+use printpdf::Point as PtPoint;
 use std::fmt::Result as FmtResult;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, AddAssign};
@@ -40,6 +41,24 @@ impl AddAssign for Point {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         };
+    }
+}
+
+impl From<PtPoint> for Point {
+    fn from(ptpoint: PtPoint) -> Self {
+        Self {
+            x: Mm::from(ptpoint.x),
+            y: Mm::from(ptpoint.y),
+        }
+    }
+}
+
+impl From<Point> for PtPoint {
+    fn from(point: Point) -> Self {
+        Self {
+            x: point.x.into_pt(),
+            y: point.y.into_pt(),
+        }
     }
 }
 
