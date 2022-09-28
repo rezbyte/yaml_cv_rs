@@ -83,7 +83,7 @@ fn main() -> Result<()> {
 
     let style_file = style::read(cli.style)?;
 
-    cv::make(cli.output.as_path(), style_file, input_file)?;
+    cv::make(cli.output.as_path(), style_file, &input_file)?;
 
     Ok(())
 }

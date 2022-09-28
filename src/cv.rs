@@ -11,6 +11,7 @@ use printpdf::{Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfLayer
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
+
 const A4_WIDTH: f64 = 210.0_f64;
 const A4_HEIGHT: f64 = 297.0_f64;
 const DPI: f64 = 75.0_f64;
@@ -125,7 +126,11 @@ fn draw_multilines(multilines: &MultiLines, layer: &PdfLayerReference) {
     }
 }
 
-pub(crate) fn make(output_path: &Path, style_script: Vec<Command>, inputs: YAMLArgs) -> Result<()> {
+pub(crate) fn make(
+    output_path: &Path,
+    style_script: Vec<Command>,
+    __inputs: &YAMLArgs,
+) -> Result<()> {
     let (doc, page1, layer1) = PdfDocument::new("CV", Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
     let font = doc.add_external_font(File::open("fonts/ipaexg.ttf")?)?;
