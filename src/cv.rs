@@ -6,11 +6,11 @@ use crate::style::Command;
 use crate::yaml::YAMLArgs;
 use anyhow::Result;
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
+use printpdf::Point as PtPoint;
 use printpdf::{Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfLayerReference};
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
-
 const A4_WIDTH: f64 = 210.0_f64;
 const A4_HEIGHT: f64 = 297.0_f64;
 const DPI: f64 = 75.0_f64;
@@ -28,11 +28,11 @@ fn draw_string(string: Text, layer: &PdfLayerReference, font: &IndirectFontRef) 
 fn draw_line(line: &Line, layer: &PdfLayerReference) {
     let points = vec![
         (
-            printpdf::Point::new(line.start_position.x, line.start_position.y),
+            PtPoint::new(line.start_position.x, line.start_position.y),
             false,
         ),
         (
-            printpdf::Point::new(line.end_position.x, line.end_position.y),
+            PtPoint::new(line.end_position.x, line.end_position.y),
             false,
         ),
     ];
@@ -46,42 +46,31 @@ fn draw_line(line: &Line, layer: &PdfLayerReference) {
 }
 
 fn draw_box(the_box: &Box, layer: &PdfLayerReference) {
-    let bottom_line = Line {
-        start_position: the_box.position,
-        end_position: Point {
-            x: the_box.position.x + the_box.size.width,
-            y: the_box.position.y,
-        },
-        line_options: the_box.line_options,
-    };
-    let right_line = Line {
-        start_position: bottom_line.end_position,
-        end_position: Point {
-            x: the_box.position.x + the_box.size.width,
-            y: the_box.position.y + the_box.size.height,
-        },
-        line_options: the_box.line_options,
-    };
-    let top_line = Line {
-        start_position: right_line.end_position,
-        end_position: Point {
-            x: the_box.position.x,
-            y: the_box.position.y + the_box.size.height,
-        },
-        line_options: the_box.line_options,
-    };
-    let left_line = Line {
-        start_position: top_line.end_position,
-        end_position: Point {
-            x: the_box.position.x,
-            y: the_box.position.y,
-        },
-        line_options: the_box.line_options,
-    };
-    draw_line(&bottom_line, layer);
-    draw_line(&right_line, layer);
-    draw_line(&top_line, layer);
-    draw_line(&left_line, layer);
+    let points = vec![
+        (
+            PtPoint::new(the_box.position.x + the_box.size.width, the_box.position.y),
+            false,
+        ),
+        (
+            PtPoint::new(
+                the_box.position.x + the_box.size.width,
+                the_box.position.y + the_box.size.height,
+            ),
+            false,
+        ),
+        (
+            PtPoint::new(the_box.position.x, the_box.position.y + the_box.size.height),
+            false,
+        ),
+        (PtPoint::new(the_box.position.x, the_box.position.y), false),
+    ];
+    layer.add_shape(printpdf::Line {
+        points,
+        is_closed: true,
+        has_fill: false,
+        has_stroke: true,
+        is_clipping_path: false,
+    });
 }
 
 fn draw_photo(photo: &Photo, image: Image, layer: &PdfLayerReference) {
