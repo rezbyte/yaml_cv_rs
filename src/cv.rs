@@ -6,8 +6,10 @@ use crate::style::Command;
 use crate::yaml::YAMLArgs;
 use anyhow::Result;
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
-use printpdf::Point as PtPoint;
-use printpdf::{Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfLayerReference};
+use printpdf::{
+    Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfDocumentReference,
+    PdfLayerReference, Point as PtPoint,
+};
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
@@ -80,6 +82,11 @@ fn draw_photo(photo: &Photo, image: Image, layer: &PdfLayerReference) {
     image.add_to_layer(layer.clone(), transform);
 }
 
+fn new_page(doc: &PdfDocumentReference) -> PdfLayerReference {
+    let (new_page, new_layer) = doc.add_page(Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
+    doc.get_page(new_page).get_layer(new_layer)
+}
+
 fn load_image(path: &Path) -> Result<Image> {
     let image_file = File::open(path)?;
     let image = Image::try_from(JpegDecoder::new(&image_file)?)?;
@@ -131,47 +138,24 @@ pub(crate) fn make(
     let image_path = Path::new("./photo.jpg");
     for command in style_script {
         match command {
-            Command::Text(text) => {
-                draw_string(text, &current_layer, &font);
-            }
-            Command::Line(line) => {
-                draw_line(&line, &current_layer);
-            }
-            Command::Box(the_box) => {
-                draw_box(&the_box, &current_layer);
-            }
+            Command::Text(text) => draw_string(text, &current_layer, &font),
+            Command::Line(line) => draw_line(&line, &current_layer),
+            Command::Box(the_box) => draw_box(&the_box, &current_layer),
             Command::Photo(photo) => {
                 let image = load_image(image_path)?;
                 draw_photo(&photo, image, &current_layer);
             }
-            Command::NewPage => {
-                let (new_page, new_layer) = doc.add_page(Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
-                current_layer = doc.get_page(new_page).get_layer(new_layer);
-            }
-            Command::TextBox(textbox) => {
-                draw_textbox(&textbox, &current_layer, &font);
-            }
-            Command::MultiLines(multilines) => {
-                draw_multilines(&multilines, &current_layer);
-            }
-            Command::YMBox(ymbox) => {
-                println!("The YM box '{}' was found!", ymbox);
-            }
-            Command::MiscBox(miscbox) => {
-                println!("The misc box '{}' was found!", miscbox);
-            }
-            Command::History(history) => {
-                println!("The history '{}' was found!", history);
-            }
-            Command::EducationExperience(education_experience) => {
-                println!(
-                    "The education experience '{}' was found!",
-                    education_experience
-                );
-            }
-            Command::Lines(lines) => {
-                println!("The lines '{}' was found!", lines);
-            }
+            Command::NewPage => current_layer = new_page(&doc),
+            Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &font),
+            Command::MultiLines(multilines) => draw_multilines(&multilines, &current_layer),
+            Command::YMBox(ymbox) => println!("The YM box '{}' was found!", ymbox),
+            Command::MiscBox(miscbox) => println!("The misc box '{}' was found!", miscbox),
+            Command::History(history) => println!("The history '{}' was found!", history),
+            Command::EducationExperience(education_experience) => println!(
+                "The education experience '{}' was found!",
+                education_experience
+            ),
+            Command::Lines(lines) => println!("The lines '{}' was found!", lines),
         }
     }
     doc.save(&mut BufWriter::new(File::create(output_path)?))?;
