@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use printpdf::Mm;
 use std::fmt::Result as FmtResult;
 use std::fmt::{Display, Formatter};
+use std::ops::{Add, AddAssign};
 use std::str::FromStr;
 
 pub(crate) const DEFAULT_FONT_FACE: &str = "mincho";
@@ -20,6 +21,25 @@ pub(crate) struct Point {
 impl Display for Point {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "({}mm, {}mm)", self.x.0, self.y.0)
+    }
+}
+
+impl Add for Point {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl AddAssign for Point {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        };
     }
 }
 

@@ -1,6 +1,6 @@
 //! Creates the CV in a PDF file.
 
-use crate::style::command::{Box, Line, Photo, Text, TextBox};
+use crate::style::command::{Box, Line, MultiLines, Photo, Text, TextBox};
 use crate::style::core::{LineOptions, Point, DEFAULT_FONT_SIZE};
 use crate::style::Command;
 use crate::yaml::YAMLArgs;
@@ -123,6 +123,19 @@ fn draw_textbox(textbox: &TextBox, layer: &PdfLayerReference, font: &IndirectFon
     draw_string(string, layer, font);
 }
 
+fn draw_multilines(multilines: &MultiLines, layer: &PdfLayerReference) {
+    let mut pos = multilines.start_position;
+    for __i in 0..multilines.stroke_number {
+        let line = Line {
+            start_position: pos,
+            end_position: pos + multilines.direction,
+            line_options: LineOptions::default(),
+        };
+        draw_line(&line, layer);
+        pos += multilines.position_offset;
+    }
+}
+
 pub(crate) fn make(output_path: &Path, style_script: Vec<Command>, inputs: YAMLArgs) -> Result<()> {
     let (doc, page1, layer1) = PdfDocument::new("CV", Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
@@ -151,7 +164,7 @@ pub(crate) fn make(output_path: &Path, style_script: Vec<Command>, inputs: YAMLA
                 draw_textbox(&textbox, &current_layer, &font);
             }
             Command::MultiLines(multilines) => {
-                println!("The multi-lines '{}' was found!", multilines);
+                draw_multilines(&multilines, &current_layer);
             }
             Command::YMBox(ymbox) => {
                 println!("The YM box '{}' was found!", ymbox);
