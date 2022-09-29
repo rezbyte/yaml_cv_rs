@@ -5,6 +5,8 @@ use printpdf::Mm;
 use printpdf::Point as PtPoint;
 use std::fmt::Result as FmtResult;
 use std::fmt::{Display, Formatter};
+use std::ops::Sub;
+use std::ops::SubAssign;
 use std::ops::{Add, AddAssign};
 use std::str::FromStr;
 
@@ -40,6 +42,25 @@ impl AddAssign for Point {
         *self = Self {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
+        };
+    }
+}
+
+impl Sub for Point {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl SubAssign for Point {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
         };
     }
 }

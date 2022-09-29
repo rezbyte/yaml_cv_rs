@@ -8,30 +8,39 @@ use anyhow::Result;
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
 use printpdf::{
     Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfDocumentReference,
-    PdfLayerReference, Point as PtPoint,
+    PdfLayerReference, Point as PtPoint, Pt,
 };
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 
+const MARGIN: Mm = Mm(12.7);
+const MARGIN_AS_POINT: Point = Point {
+    x: MARGIN,
+    y: MARGIN,
+};
 const A4_WIDTH: f64 = 210.0_f64;
 const A4_HEIGHT: f64 = 297.0_f64;
 const DPI: f64 = 75.0_f64;
 
 fn draw_string(string: Text, layer: &PdfLayerReference, font: &IndirectFontRef) {
+    let font_size = string.font_options.font_size.unwrap_or(DEFAULT_FONT_SIZE);
     layer.use_text(
         string.value,
-        string.font_options.font_size.unwrap_or(DEFAULT_FONT_SIZE),
-        string.position.x,
-        string.position.y,
+        font_size,
+        string.position.x + MARGIN,
+        string.position.y + Mm::from(Pt(font_size)) + Mm(7.0),
         font,
     );
 }
 
 fn draw_line(line: &Line, layer: &PdfLayerReference) {
     let points: std::vec::Vec<(printpdf::Point, _)> = vec![
-        ((line.start_position).into(), false),
-        ((line.start_position + line.end_position).into(), false),
+        ((line.start_position + MARGIN_AS_POINT).into(), false),
+        (
+            (line.start_position + line.end_position + MARGIN_AS_POINT).into(),
+            false,
+        ),
     ];
     layer.add_shape(printpdf::Line {
         points,
@@ -45,21 +54,30 @@ fn draw_line(line: &Line, layer: &PdfLayerReference) {
 fn draw_box(the_box: &Box, layer: &PdfLayerReference) {
     let points: std::vec::Vec<(printpdf::Point, _)> = vec![
         (
-            PtPoint::new(the_box.position.x + the_box.size.width, the_box.position.y),
-            false,
-        ),
-        (
             PtPoint::new(
-                the_box.position.x + the_box.size.width,
-                the_box.position.y + the_box.size.height,
+                the_box.position.x + the_box.size.width + MARGIN,
+                the_box.position.y + MARGIN,
             ),
             false,
         ),
         (
-            PtPoint::new(the_box.position.x, the_box.position.y + the_box.size.height),
+            PtPoint::new(
+                the_box.position.x + the_box.size.width + MARGIN,
+                the_box.position.y + the_box.size.height + MARGIN,
+            ),
             false,
         ),
-        (PtPoint::new(the_box.position.x, the_box.position.y), false),
+        (
+            PtPoint::new(
+                the_box.position.x + MARGIN,
+                the_box.position.y + the_box.size.height + MARGIN,
+            ),
+            false,
+        ),
+        (
+            PtPoint::new(the_box.position.x + MARGIN, the_box.position.y + MARGIN),
+            false,
+        ),
     ];
     layer.add_shape(printpdf::Line {
         points,
@@ -79,8 +97,8 @@ fn load_image(path: &Path) -> Result<Image> {
 fn draw_photo(photo: &Photo, image_path: &Path, layer: &PdfLayerReference) -> Result<()> {
     let image = load_image(image_path)?;
     let transform = ImageTransform {
-        translate_x: Some(photo.position.x),
-        translate_y: Some(photo.position.y),
+        translate_x: Some(photo.position.x + MARGIN),
+        translate_y: Some(photo.position.y + MARGIN),
         rotate: None,
         scale_x: Some(photo.size.width.0),
         scale_y: Some(photo.size.height.0),
@@ -96,15 +114,21 @@ fn new_page(doc: &PdfDocumentReference) -> PdfLayerReference {
 }
 
 fn draw_textbox(textbox: &TextBox, layer: &PdfLayerReference, font: &IndirectFontRef) {
+    // Position has origin at top left of the box, need to convert it to bottom left
+    let position_from_bottom_left = Point {
+        x: textbox.position.x,
+        y: textbox.position.y - textbox.size.height,
+    };
+
     let bounding_box = Box {
-        position: textbox.position,
+        position: position_from_bottom_left,
         size: textbox.size,
         line_options: LineOptions::default(),
     };
 
     let center_position = Point {
-        x: textbox.position.x + (textbox.size.width * 0.5_f64),
-        y: textbox.position.y + (textbox.size.height * 0.5_f64),
+        x: bounding_box.position.x + (bounding_box.size.width * 0.5_f64),
+        y: bounding_box.position.y + (bounding_box.size.height * 0.5_f64),
     };
     let string = Text {
         position: center_position,
