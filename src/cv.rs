@@ -70,7 +70,14 @@ fn draw_box(the_box: &Box, layer: &PdfLayerReference) {
     });
 }
 
-fn draw_photo(photo: &Photo, image: Image, layer: &PdfLayerReference) {
+fn load_image(path: &Path) -> Result<Image> {
+    let image_file = File::open(path)?;
+    let image = Image::try_from(JpegDecoder::new(&image_file)?)?;
+    Ok(image)
+}
+
+fn draw_photo(photo: &Photo, image_path: &Path, layer: &PdfLayerReference) -> Result<()> {
+    let image = load_image(image_path)?;
     let transform = ImageTransform {
         translate_x: Some(photo.position.x),
         translate_y: Some(photo.position.y),
@@ -80,17 +87,12 @@ fn draw_photo(photo: &Photo, image: Image, layer: &PdfLayerReference) {
         dpi: Some(DPI),
     };
     image.add_to_layer(layer.clone(), transform);
+    Ok(())
 }
 
 fn new_page(doc: &PdfDocumentReference) -> PdfLayerReference {
     let (new_page, new_layer) = doc.add_page(Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
     doc.get_page(new_page).get_layer(new_layer)
-}
-
-fn load_image(path: &Path) -> Result<Image> {
-    let image_file = File::open(path)?;
-    let image = Image::try_from(JpegDecoder::new(&image_file)?)?;
-    Ok(image)
 }
 
 fn draw_textbox(textbox: &TextBox, layer: &PdfLayerReference, font: &IndirectFontRef) {
@@ -141,10 +143,7 @@ pub(crate) fn make(
             Command::Text(text) => draw_string(text, &current_layer, &font),
             Command::Line(line) => draw_line(&line, &current_layer),
             Command::Box(the_box) => draw_box(&the_box, &current_layer),
-            Command::Photo(photo) => {
-                let image = load_image(image_path)?;
-                draw_photo(&photo, image, &current_layer);
-            }
+            Command::Photo(photo) => draw_photo(&photo, image_path, &current_layer)?,
             Command::NewPage => current_layer = new_page(&doc),
             Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &font),
             Command::MultiLines(multilines) => draw_multilines(&multilines, &current_layer),
