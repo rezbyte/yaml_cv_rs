@@ -85,10 +85,12 @@ fn main() -> Result<()> {
 
     cv::make(cli.output.as_path(), style_file, &input_file)?;
 
-    println!("input  file: {}", &cli.input.display());
-    println!("style  file: {}", &cli.style.display());
-    println!("output file: {}", &cli.output.display());
-    println!("Done.");
+    println!(
+        "input  file: {}\nstyle  file: {}\noutput file: {}\nDone.",
+        &cli.input.display(),
+        &cli.style.display(),
+        &cli.output.display()
+    );
 
     Ok(())
 }
