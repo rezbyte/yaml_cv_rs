@@ -18,6 +18,7 @@ pub(crate) struct Entry {
 pub(crate) struct YAMLArgs {
     pub(crate) date: String,
     pub(crate) name_kana: String,
+    pub(crate) name: String,
     pub(crate) birth_day: String,
     pub(crate) gender: String,
     pub(crate) cell_phone: String,
