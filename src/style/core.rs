@@ -15,7 +15,7 @@ pub(crate) const DEFAULT_FONT_SIZE: f64 = 12.0_f64;
 pub(crate) const DEFAULT_LINE_WIDTH: f32 = 0.5;
 
 // Represents a position in 2D space.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub(crate) struct Point {
     pub(crate) x: Mm,
     pub(crate) y: Mm,

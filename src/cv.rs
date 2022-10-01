@@ -1,6 +1,6 @@
 //! Creates the CV in a PDF file.
 
-use crate::style::command::{Box, Line, MultiLines, Photo, Text, TextBox};
+use crate::style::command::{Box, Line, Lines, MultiLines, Photo, Text, TextBox};
 use crate::style::core::{LineOptions, Point, DEFAULT_FONT_SIZE};
 use crate::style::Command;
 use crate::yaml::YAMLArgs;
@@ -153,6 +153,31 @@ fn draw_multilines(multilines: &MultiLines, layer: &PdfLayerReference) {
     }
 }
 
+fn draw_lines(lines: &Lines, layer: &PdfLayerReference) -> Result<()> {
+    let is_closed = lines.close.unwrap_or(true);
+    let start_position: Point = *lines
+        .positions
+        .get(0)
+        .expect("Failed to get first position in lines");
+    let mut points: std::vec::Vec<(printpdf::Point, _)> =
+        vec![((start_position + MARGIN_AS_POINT).into(), false)];
+    let stroke_number: usize = usize::try_from(lines.stroke_number)?;
+    for i in 1..stroke_number {
+        let (previous_point, _) = *points.get(i - 1).expect("Falied to get previous value");
+        let previous_value = Point::from(previous_point);
+        let end_position: Point = *lines.positions.get(i).unwrap_or(&Point::default());
+        points.push(((previous_value + end_position).into(), false));
+    }
+    layer.add_shape(printpdf::Line {
+        points,
+        is_closed,
+        has_fill: false,
+        has_stroke: true,
+        is_clipping_path: false,
+    });
+    Ok(())
+}
+
 pub(crate) fn make(
     output_path: &Path,
     style_script: Vec<Command>,
@@ -178,7 +203,7 @@ pub(crate) fn make(
                 "The education experience '{}' was found!",
                 education_experience
             ),
-            Command::Lines(lines) => println!("The lines '{}' was found!", lines),
+            Command::Lines(lines) => draw_lines(&lines, &current_layer)?,
         }
     }
     doc.save(&mut BufWriter::new(File::create(output_path)?))?;
