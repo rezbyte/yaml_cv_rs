@@ -4,7 +4,7 @@ use crate::style::command::{Box, Line, Lines, MultiLines, Photo, Text, TextBox};
 use crate::style::core::{LineOptions, Point, DEFAULT_FONT_SIZE};
 use crate::style::Command;
 use crate::yaml::YAMLArgs;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
 use printpdf::{
     Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfDocumentReference,
@@ -23,10 +23,47 @@ const A4_WIDTH: f64 = 210.0_f64;
 const A4_HEIGHT: f64 = 297.0_f64;
 const DPI: f64 = 75.0_f64;
 
-fn draw_string(string: Text, layer: &PdfLayerReference, font: &IndirectFontRef) {
+fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a String> {
+    if value.starts_with('$') {
+        match value.as_str() {
+            "$date" => Ok(&inputs.date),
+            "$name_kana" => Ok(&inputs.name_kana),
+            "$name" => Ok(&inputs.name),
+            "$birth_day" => Ok(&inputs.birth_day),
+            "$gender" => Ok(&inputs.gender),
+            "$cell_phone" => Ok(&inputs.cell_phone),
+            "$email" => Ok(&inputs.email),
+            "$address_kana" => Ok(&inputs.address_kana),
+            "$address" => Ok(&inputs.address),
+            "$address_zip" => Ok(&inputs.address_zip),
+            "$tel" => Ok(&inputs.tel),
+            "$fax" => Ok(&inputs.fax),
+            "$address_kana2" => Ok(&inputs.address_kana2),
+            "$address2" => Ok(&inputs.address2),
+            "$address_zip2" => Ok(&inputs.address_zip2),
+            "$tel2" => Ok(&inputs.tel2),
+            "$fax2" => Ok(&inputs.fax2),
+            "$commuting_time" => Ok(&inputs.commuting_time),
+            "$dependents" => Ok(&inputs.dependents),
+            "$spouse" => Ok(&inputs.spouse),
+            "$supporting_spouse" => Ok(&inputs.supporting_spouse),
+            _ => Err(anyhow!("Unknown variable: {}", value)),
+        }
+    } else {
+        Ok(value)
+    }
+}
+
+fn draw_string(
+    string: &Text,
+    layer: &PdfLayerReference,
+    font: &IndirectFontRef,
+    inputs: &YAMLArgs,
+) {
     let font_size = string.font_options.font_size.unwrap_or(DEFAULT_FONT_SIZE);
+    let value = handle_value(&string.value, inputs).unwrap_or(&string.value);
     layer.use_text(
-        string.value,
+        value,
         font_size,
         string.position.x + MARGIN,
         string.position.y + Mm::from(Pt(font_size)) + Mm(7.0),
@@ -113,7 +150,12 @@ fn new_page(doc: &PdfDocumentReference) -> PdfLayerReference {
     doc.get_page(new_page).get_layer(new_layer)
 }
 
-fn draw_textbox(textbox: &TextBox, layer: &PdfLayerReference, font: &IndirectFontRef) {
+fn draw_textbox(
+    textbox: &TextBox,
+    layer: &PdfLayerReference,
+    font: &IndirectFontRef,
+    inputs: &YAMLArgs,
+) {
     // Position has origin at top left of the box, need to convert it to bottom left
     let position_from_bottom_left = Point {
         x: textbox.position.x,
@@ -137,7 +179,7 @@ fn draw_textbox(textbox: &TextBox, layer: &PdfLayerReference, font: &IndirectFon
     };
 
     draw_box(&bounding_box, layer);
-    draw_string(string, layer, font);
+    draw_string(&string, layer, font, inputs);
 }
 
 fn draw_multilines(multilines: &MultiLines, layer: &PdfLayerReference) {
@@ -181,7 +223,7 @@ fn draw_lines(lines: &Lines, layer: &PdfLayerReference) -> Result<()> {
 pub(crate) fn make(
     output_path: &Path,
     style_script: Vec<Command>,
-    __inputs: &YAMLArgs,
+    inputs: &YAMLArgs,
 ) -> Result<()> {
     let (doc, page1, layer1) = PdfDocument::new("CV", Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
@@ -189,12 +231,12 @@ pub(crate) fn make(
     let image_path = Path::new("./photo.jpg");
     for command in style_script {
         match command {
-            Command::Text(text) => draw_string(text, &current_layer, &font),
+            Command::Text(text) => draw_string(&text, &current_layer, &font, inputs),
             Command::Line(line) => draw_line(&line, &current_layer),
             Command::Box(the_box) => draw_box(&the_box, &current_layer),
             Command::Photo(photo) => draw_photo(&photo, image_path, &current_layer)?,
             Command::NewPage => current_layer = new_page(&doc),
-            Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &font),
+            Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &font, inputs),
             Command::MultiLines(multilines) => draw_multilines(&multilines, &current_layer),
             Command::YMBox(ymbox) => println!("The YM box '{}' was found!", ymbox),
             Command::MiscBox(miscbox) => println!("The misc box '{}' was found!", miscbox),
