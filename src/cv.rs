@@ -1,7 +1,7 @@
 //! Creates the CV in a PDF file.
 
 use crate::style::command::{Box, Line, Lines, MultiLines, Photo, Text, TextBox};
-use crate::style::core::{LineOptions, Point, DEFAULT_FONT_SIZE};
+use crate::style::core::{LineOptions, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE};
 use crate::style::Command;
 use crate::yaml::YAMLArgs;
 use anyhow::{anyhow, Result};
@@ -10,6 +10,7 @@ use printpdf::{
     Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfDocumentReference,
     PdfLayerReference, Point as PtPoint, Pt,
 };
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
@@ -22,6 +23,29 @@ const MARGIN_AS_POINT: Point = Point {
 const A4_WIDTH: f64 = 210.0_f64;
 const A4_HEIGHT: f64 = 297.0_f64;
 const DPI: f64 = 75.0_f64;
+
+type FontMap<'a> = HashMap<&'a str, IndirectFontRef>;
+#[allow(unused_results)]
+fn get_fonts<'a>(doc: &PdfDocumentReference) -> Result<FontMap<'a>> {
+    let mut fonts = HashMap::new();
+    fonts.insert(
+        "mincho",
+        doc.add_external_font(File::open("fonts/ipaexm.ttf")?)?,
+    );
+    fonts.insert(
+        "gothic",
+        doc.add_external_font(File::open("fonts/ipaexg.ttf")?)?,
+    );
+    Ok(fonts)
+}
+
+fn handle_font<'a>(name: &'a String, fonts: &'a FontMap<'a>) -> Result<&'a IndirectFontRef> {
+    if let Some(font) = fonts.get(name.as_str()) {
+        Ok(font)
+    } else {
+        Err(anyhow!("Failed to fetch font: {}", name))
+    }
+}
 
 fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a String> {
     if value.starts_with('$') {
@@ -57,11 +81,20 @@ fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a Strin
 fn draw_string(
     string: &Text,
     layer: &PdfLayerReference,
-    font: &IndirectFontRef,
+    fonts: &FontMap<'_>,
     inputs: &YAMLArgs,
-) {
+) -> Result<()> {
     let font_size = string.font_options.font_size.unwrap_or(DEFAULT_FONT_SIZE);
     let value = handle_value(&string.value, inputs).unwrap_or(&string.value);
+    let default_font = &DEFAULT_FONT_FACE.to_owned();
+    let font = handle_font(
+        string
+            .font_options
+            .font_face
+            .as_ref()
+            .unwrap_or(default_font),
+        fonts,
+    )?;
     layer.use_text(
         value,
         font_size,
@@ -69,6 +102,7 @@ fn draw_string(
         string.position.y + Mm::from(Pt(font_size)) + Mm(7.0),
         font,
     );
+    Ok(())
 }
 
 fn draw_line(line: &Line, layer: &PdfLayerReference) {
@@ -153,9 +187,9 @@ fn new_page(doc: &PdfDocumentReference) -> PdfLayerReference {
 fn draw_textbox(
     textbox: &TextBox,
     layer: &PdfLayerReference,
-    font: &IndirectFontRef,
+    fonts: &FontMap<'_>,
     inputs: &YAMLArgs,
-) {
+) -> Result<()> {
     // Position has origin at top left of the box, need to convert it to bottom left
     let position_from_bottom_left = Point {
         x: textbox.position.x,
@@ -179,7 +213,8 @@ fn draw_textbox(
     };
 
     draw_box(&bounding_box, layer);
-    draw_string(&string, layer, font, inputs);
+    draw_string(&string, layer, fonts, inputs)?;
+    Ok(())
 }
 
 fn draw_multilines(multilines: &MultiLines, layer: &PdfLayerReference) {
@@ -227,16 +262,16 @@ pub(crate) fn make(
 ) -> Result<()> {
     let (doc, page1, layer1) = PdfDocument::new("CV", Mm(A4_WIDTH), Mm(A4_HEIGHT), "Layer 1");
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
-    let font = doc.add_external_font(File::open("fonts/ipaexg.ttf")?)?;
+    let fonts = get_fonts(&doc)?;
     let image_path = Path::new("./photo.jpg");
     for command in style_script {
         match command {
-            Command::Text(text) => draw_string(&text, &current_layer, &font, inputs),
+            Command::Text(text) => draw_string(&text, &current_layer, &fonts, inputs)?,
             Command::Line(line) => draw_line(&line, &current_layer),
             Command::Box(the_box) => draw_box(&the_box, &current_layer),
             Command::Photo(photo) => draw_photo(&photo, image_path, &current_layer)?,
             Command::NewPage => current_layer = new_page(&doc),
-            Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &font, inputs),
+            Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &fonts, inputs)?,
             Command::MultiLines(multilines) => draw_multilines(&multilines, &current_layer),
             Command::YMBox(ymbox) => println!("The YM box '{}' was found!", ymbox),
             Command::MiscBox(miscbox) => println!("The misc box '{}' was found!", miscbox),
