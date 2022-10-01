@@ -97,8 +97,9 @@ impl Display for Size {
 }
 
 /// The patterns that can be used to draw lines.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Default)]
 pub(crate) enum LineStyle {
+    #[default]
     Solid,
     Dashed,
 }
@@ -164,7 +165,7 @@ impl Default for LineOptions {
     fn default() -> Self {
         LineOptions {
             line_width: Some(DEFAULT_LINE_WIDTH),
-            line_style: Some(LineStyle::Solid),
+            line_style: Some(LineStyle::default()),
         }
     }
 }

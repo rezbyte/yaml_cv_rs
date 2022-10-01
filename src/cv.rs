@@ -1,13 +1,13 @@
 //! Creates the CV in a PDF file.
 
 use crate::style::command::{Box, Line, Lines, MultiLines, Photo, Text, TextBox};
-use crate::style::core::{LineOptions, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE};
+use crate::style::core::{LineOptions, LineStyle, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE};
 use crate::style::Command;
 use crate::yaml::YAMLArgs;
 use anyhow::{anyhow, Result};
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
 use printpdf::{
-    Image, ImageTransform, IndirectFontRef, Mm, PdfDocument, PdfDocumentReference,
+    Image, ImageTransform, IndirectFontRef, LineDashPattern, Mm, PdfDocument, PdfDocumentReference,
     PdfLayerReference, Point as PtPoint, Pt,
 };
 use std::collections::HashMap;
@@ -78,6 +78,20 @@ fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a Strin
     }
 }
 
+fn handle_line_options(options: &LineOptions, layer: &PdfLayerReference) {
+    let width = options.line_width.unwrap_or_default();
+    layer.set_outline_thickness(width.into());
+
+    let line_style = options.line_style.unwrap_or_default();
+    match line_style {
+        LineStyle::Solid => layer.set_line_dash_pattern(LineDashPattern::default()),
+        LineStyle::Dashed => {
+            let pattern = LineDashPattern::new(0, Some(1), None, None, None, None, None);
+            layer.set_line_dash_pattern(pattern);
+        }
+    }
+}
+
 fn draw_string(
     string: &Text,
     layer: &PdfLayerReference,
@@ -113,6 +127,9 @@ fn draw_line(line: &Line, layer: &PdfLayerReference) {
             false,
         ),
     ];
+
+    handle_line_options(&line.line_options, layer);
+
     layer.add_shape(printpdf::Line {
         points,
         is_closed: true,
@@ -150,6 +167,7 @@ fn draw_box(the_box: &Box, layer: &PdfLayerReference) {
             false,
         ),
     ];
+    handle_line_options(&the_box.line_options, layer);
     layer.add_shape(printpdf::Line {
         points,
         is_closed: true,
@@ -245,6 +263,7 @@ fn draw_lines(lines: &Lines, layer: &PdfLayerReference) -> Result<()> {
         let end_position: Point = *lines.positions.get(i).unwrap_or(&Point::default());
         points.push(((previous_value + end_position).into(), false));
     }
+    handle_line_options(&lines.line_options, layer);
     layer.add_shape(printpdf::Line {
         points,
         is_closed,
