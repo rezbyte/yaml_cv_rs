@@ -240,7 +240,7 @@ fn draw_multilines(multilines: &MultiLines, layer: &PdfLayerReference) {
     for __i in 0..multilines.stroke_number {
         let line = Line {
             start_position: pos,
-            end_position: pos + multilines.direction,
+            end_position: multilines.direction,
             line_options: LineOptions::default(),
         };
         draw_line(&line, layer);
