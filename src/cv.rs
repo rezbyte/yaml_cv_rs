@@ -71,6 +71,9 @@ fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a Strin
             "$dependents" => Ok(&inputs.dependents),
             "$spouse" => Ok(&inputs.spouse),
             "$supporting_spouse" => Ok(&inputs.supporting_spouse),
+            "$hobby" => Ok(&inputs.hobby),
+            "$motivation" => Ok(&inputs.motivation),
+            "$request" => Ok(&inputs.request),
             _ => Err(anyhow!("Unknown variable: {}", value)),
         }
     } else {
@@ -109,13 +112,20 @@ fn draw_string(
             .unwrap_or(default_font),
         fonts,
     )?;
-    layer.use_text(
-        value,
-        font_size,
-        string.position.x + MARGIN,
-        string.position.y + Mm::from(Pt(font_size)) + Mm(7.0),
-        font,
-    );
+    let font_size_mm = Mm::from(Pt(font_size));
+    // Handle new lines in value
+    let mut y_offset = Mm(0.0_f64);
+    for line in value.split('\n') {
+        layer.use_text(
+            line,
+            font_size,
+            string.position.x + MARGIN,
+            string.position.y + font_size_mm + Mm(7.0) - y_offset,
+            font,
+        );
+        y_offset += font_size_mm;
+    }
+
     Ok(())
 }
 
@@ -208,29 +218,15 @@ fn draw_textbox(
     fonts: &FontMap<'_>,
     inputs: &YAMLArgs,
 ) -> Result<()> {
-    // Position has origin at top left of the box, need to convert it to bottom left
-    let position_from_bottom_left = Point {
+    let position = Point {
         x: textbox.position.x,
-        y: textbox.position.y - textbox.size.height,
-    };
-
-    let bounding_box = Box {
-        position: position_from_bottom_left,
-        size: textbox.size,
-        line_options: LineOptions::default(),
-    };
-
-    let center_position = Point {
-        x: bounding_box.position.x + (bounding_box.size.width * 0.5_f64),
-        y: bounding_box.position.y + (bounding_box.size.height * 0.5_f64),
+        y: textbox.position.y - Mm::from(Pt(textbox.font_options.font_size.unwrap_or_default())),
     };
     let string = Text {
-        position: center_position,
-        value: textbox.value.clone(),
+        position,
+        value: handle_value(&textbox.value, inputs)?.to_string(),
         font_options: textbox.font_options.clone(),
     };
-
-    draw_box(&bounding_box, layer);
     draw_string(&string, layer, fonts, inputs)?;
     Ok(())
 }
