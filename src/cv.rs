@@ -51,6 +51,11 @@ fn handle_font<'a>(name: &'a String, fonts: &'a FontMap<'a>) -> Result<&'a Indir
     }
 }
 
+fn font_size_to_mm(font_size: Option<f64>) -> Mm {
+    let font_size = font_size.unwrap_or(DEFAULT_FONT_SIZE);
+    Mm::from(Pt(font_size))
+}
+
 fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a String> {
     if value.starts_with('$') {
         match value.as_str() {
@@ -116,7 +121,7 @@ fn draw_string(
             .unwrap_or(default_font),
         fonts,
     )?;
-    let font_size_mm = Mm::from(Pt(font_size));
+    let font_size_mm = font_size_to_mm(string.font_options.font_size);
     // Handle new lines in value
     let mut y_offset = Mm(0.0_f64);
     for line in value.split('\n') {
@@ -224,7 +229,7 @@ fn draw_textbox(
 ) -> Result<()> {
     let position = Point {
         x: textbox.position.x,
-        y: textbox.position.y - Mm::from(Pt(textbox.font_options.font_size.unwrap_or_default())),
+        y: textbox.position.y - font_size_to_mm(textbox.font_options.font_size),
     };
     let string = Text {
         position,
