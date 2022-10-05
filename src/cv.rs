@@ -290,6 +290,7 @@ fn draw_table(
 ) -> Result<Mm> {
     draw_string(header, layer, fonts, inputs)?;
     let mut final_y = header.position.y - positions.padding;
+    let font_size_mm = font_size_to_mm(font_options.font_size);
     for entry in table.iter() {
         let year = Text {
             position: Point {
@@ -300,16 +301,18 @@ fn draw_table(
             font_options: font_options.clone(),
         };
         draw_string(&year, layer, fonts, inputs)?;
-        let month_value = entry.month.unwrap_or_default();
+        let month_value = entry.month.unwrap_or_default().to_string();
+        let month_offset = if month_value.len() > 1 {
+            font_size_mm / 3.0_f64
+        } else {
+            Mm(0.0)
+        };
         let month = Text {
             position: Point {
-                x: positions.month_x
-                    - Mm(f64::from(month_value - 1_u8)
-                        * font_options.font_size.unwrap_or_default()
-                        * 3.0_f64),
+                x: positions.month_x - month_offset,
                 y: final_y,
             },
-            value: month_value.to_string(),
+            value: month_value,
             font_options: font_options.clone(),
         };
         draw_string(&month, layer, fonts, inputs)?;
