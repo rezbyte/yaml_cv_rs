@@ -140,13 +140,28 @@ impl Display for MiscBox {
     }
 }
 
-/// A time table.
-pub(crate) struct History {
+/// The positions of rows & columns in a time table.
+pub(crate) struct HistoryPosition {
     pub(crate) y: Mm,
     pub(crate) year_x: Mm,
     pub(crate) month_x: Mm,
     pub(crate) value_x: Mm,
     pub(crate) padding: Mm,
+}
+
+impl Display for HistoryPosition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(
+            f,
+            "( {}, {}, {}, {}, {})",
+            self.y.0, self.year_x.0, self.month_x.0, self.value_x.0, self.padding.0,
+        )
+    }
+}
+
+/// A time table.
+pub(crate) struct History {
+    pub(crate) positions: HistoryPosition,
     pub(crate) value: String,
     pub(crate) font_options: FontOptions,
 }
@@ -155,25 +170,15 @@ impl Display for History {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
-            "(({}, {}, {}, {}), {}, {}, {})",
-            self.y.0,
-            self.year_x.0,
-            self.month_x.0,
-            self.value_x.0,
-            self.padding.0,
-            self.value,
-            self.font_options,
+            "({}, {}, {})",
+            self.positions, self.value, self.font_options,
         )
     }
 }
 
 /// An employment & education history table.
 pub(crate) struct EducationExperience {
-    pub(crate) y: Mm,
-    pub(crate) year_x: Mm,
-    pub(crate) month_x: Mm,
-    pub(crate) value_x: Mm,
-    pub(crate) padding: Mm,
+    pub(crate) positions: HistoryPosition,
     pub(crate) caption_x: Mm,
     pub(crate) ijo_x: Mm,
     pub(crate) font_options: FontOptions,
@@ -183,15 +188,8 @@ impl Display for EducationExperience {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
-            "(({}mm, {}mm, {}mm, {}mm), {}mm, ({}mm, {}mm), {})",
-            self.y.0,
-            self.year_x.0,
-            self.month_x.0,
-            self.value_x.0,
-            self.padding.0,
-            self.caption_x.0,
-            self.ijo_x.0,
-            self.font_options
+            "({}mm, {}mm, {}mm, {})",
+            self.positions, self.caption_x.0, self.ijo_x.0, self.font_options
         )
     }
 }

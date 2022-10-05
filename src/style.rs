@@ -11,7 +11,8 @@ use std::vec::Vec;
 pub(crate) mod command;
 pub(crate) mod core;
 use crate::style::command::{
-    EducationExperience, History, Line, Lines, MiscBox, MultiLines, Photo, Text, TextBox, YMBox,
+    EducationExperience, History, HistoryPosition, Line, Lines, MiscBox, MultiLines, Photo, Text,
+    TextBox, YMBox,
 };
 use crate::style::core::{FontOptions, LineOptions, LineStyle, Point, Size};
 
@@ -239,11 +240,13 @@ fn parse_history(parameters: &[&str], line_number: usize) -> Result<History> {
     let raw_value = *handle_missing(parameters.get(6), "value", "history", line_number);
 
     Ok(History {
-        y: parse_mm(raw_y)?,
-        year_x: parse_mm(raw_year_x)?,
-        month_x: parse_mm(raw_month_x)?,
-        value_x: parse_mm(raw_value_x)?,
-        padding: parse_mm(raw_padding)?,
+        positions: HistoryPosition {
+            y: parse_mm(raw_y)?,
+            year_x: parse_mm(raw_year_x)?,
+            month_x: parse_mm(raw_month_x)?,
+            value_x: parse_mm(raw_value_x)?,
+            padding: parse_mm(raw_padding)?,
+        },
         value: raw_value.to_owned(),
         font_options: parse_font_options(parameters)?,
     })
@@ -262,11 +265,13 @@ fn parse_education_experience(
     let raw_ijo_x = *handle_missing(parameters.get(7), "ijo x", "history", line_number);
 
     Ok(EducationExperience {
-        y: parse_mm(raw_y)?,
-        year_x: parse_mm(raw_year_x)?,
-        month_x: parse_mm(raw_month_x)?,
-        value_x: parse_mm(raw_value_x)?,
-        padding: parse_mm(raw_padding)?,
+        positions: HistoryPosition {
+            y: parse_mm(raw_y)?,
+            year_x: parse_mm(raw_year_x)?,
+            month_x: parse_mm(raw_month_x)?,
+            value_x: parse_mm(raw_value_x)?,
+            padding: parse_mm(raw_padding)?,
+        },
         caption_x: parse_mm(raw_caption_x)?,
         ijo_x: parse_mm(raw_ijo_x)?,
         font_options: parse_font_options(parameters)?,

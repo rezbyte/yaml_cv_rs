@@ -1,9 +1,13 @@
 //! Creates the CV in a PDF file.
 
-use crate::style::command::{Box, Line, Lines, MultiLines, Photo, Text, TextBox};
-use crate::style::core::{LineOptions, LineStyle, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE};
+use crate::style::command::{
+    Box, EducationExperience, HistoryPosition, Line, Lines, MultiLines, Photo, Text, TextBox,
+};
+use crate::style::core::{
+    FontOptions, LineOptions, LineStyle, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
+};
 use crate::style::Command;
-use crate::yaml::YAMLArgs;
+use crate::yaml::{Entry, YAMLArgs};
 use anyhow::{anyhow, Result};
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
 use printpdf::{
@@ -270,6 +274,98 @@ fn draw_lines(lines: &Lines, layer: &PdfLayerReference) -> Result<()> {
     Ok(())
 }
 
+fn draw_table(
+    header: &Text,
+    table: &[Entry],
+    positions: &HistoryPosition,
+    font_options: &FontOptions,
+    layer: &PdfLayerReference,
+    fonts: &FontMap<'_>,
+    inputs: &YAMLArgs,
+) -> Result<Mm> {
+    draw_string(header, layer, fonts, inputs)?;
+    let mut final_y = header.position.y - positions.padding;
+    for entry in table.iter() {
+        let year = Text {
+            position: Point {
+                x: positions.year_x,
+                y: final_y,
+            },
+            value: entry.year.clone().unwrap_or_default(),
+            font_options: font_options.clone(),
+        };
+        draw_string(&year, layer, fonts, inputs)?;
+        let month_value = entry.month.unwrap_or_default();
+        let month = Text {
+            position: Point {
+                x: positions.month_x
+                    - Mm(f64::from(month_value - 1_u8)
+                        * font_options.font_size.unwrap_or_default()
+                        * 3.0_f64),
+                y: final_y,
+            },
+            value: month_value.to_string(),
+            font_options: font_options.clone(),
+        };
+        draw_string(&month, layer, fonts, inputs)?;
+        let value = Text {
+            position: Point {
+                x: positions.value_x,
+                y: final_y,
+            },
+            value: entry.value.clone(),
+            font_options: font_options.clone(),
+        };
+        draw_string(&value, layer, fonts, inputs)?;
+        final_y -= positions.padding;
+    }
+    Ok(final_y)
+}
+
+#[allow(unused_results)]
+fn draw_education_experience(
+    education_experience: &EducationExperience,
+    layer: &PdfLayerReference,
+    fonts: &FontMap<'_>,
+    inputs: &YAMLArgs,
+) -> Result<()> {
+    let education_header = Text {
+        position: Point {
+            x: education_experience.caption_x,
+            y: education_experience.positions.y - Mm(2.5_f64),
+        },
+        value: "学歴".to_owned(),
+        font_options: education_experience.font_options.clone(),
+    };
+    let current_y = draw_table(
+        &education_header,
+        &inputs.education,
+        &education_experience.positions,
+        &education_experience.font_options,
+        layer,
+        fonts,
+        inputs,
+    )?;
+    let experience_header = Text {
+        position: Point {
+            x: education_experience.caption_x,
+            y: current_y,
+        },
+        value: "職歴".to_owned(),
+        font_options: education_experience.font_options.clone(),
+    };
+    draw_table(
+        &experience_header,
+        &inputs.experience,
+        &education_experience.positions,
+        &education_experience.font_options,
+        layer,
+        fonts,
+        inputs,
+    )?;
+    Ok(())
+}
+
 pub(crate) fn make(
     output_path: &Path,
     style_script: Vec<Command>,
@@ -291,10 +387,9 @@ pub(crate) fn make(
             Command::YMBox(ymbox) => println!("The YM box '{}' was found!", ymbox),
             Command::MiscBox(miscbox) => println!("The misc box '{}' was found!", miscbox),
             Command::History(history) => println!("The history '{}' was found!", history),
-            Command::EducationExperience(education_experience) => println!(
-                "The education experience '{}' was found!",
-                education_experience
-            ),
+            Command::EducationExperience(education_experience) => {
+                draw_education_experience(&education_experience, &current_layer, &fonts, inputs)?;
+            }
             Command::Lines(lines) => draw_lines(&lines, &current_layer)?,
         }
     }
