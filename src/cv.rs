@@ -72,7 +72,7 @@ fn draw_string(
             line,
             font_size,
             string.position.x + MARGIN,
-            string.position.y + font_size_mm + Mm(7.0) - y_offset,
+            string.position.y + MARGIN - font_size_mm - y_offset,
             font,
         );
         y_offset += font_size_mm;
@@ -170,12 +170,8 @@ fn draw_textbox(
     fonts: &FontMap<'_>,
     inputs: &YAMLArgs,
 ) -> Result<()> {
-    let position = Point {
-        x: textbox.position.x,
-        y: textbox.position.y - font_size_to_mm(textbox.font_options.font_size),
-    };
     let string = Text {
-        position,
+        position: textbox.position,
         value: handle_value(&textbox.value, inputs)?.to_string(),
         font_options: textbox.font_options.clone(),
     };
@@ -286,7 +282,7 @@ fn draw_education_experience(
     let education_header = Text {
         position: Point {
             x: education_experience.caption_x,
-            y: education_experience.positions.y - Mm(2.5_f64),
+            y: education_experience.positions.y,
         },
         value: "学歴".to_owned(),
         font_options: education_experience.font_options.clone(),
