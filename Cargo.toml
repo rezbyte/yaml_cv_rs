@@ -9,7 +9,7 @@ license = "MIT"
 categories = ["command-line-utilities"]
 
 [dependencies]
-clap = { version = "3.2.17", features = ["derive"] }
+clap = { version = "4.0.10", features = ["derive"] }
 serde = { version = "1.0.144", features = ["derive"] }
 serde_yaml = "0.9.13"
 printpdf = { version = "0.5.3", features = ["embedded_images"] }
