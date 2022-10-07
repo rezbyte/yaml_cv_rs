@@ -243,7 +243,11 @@ fn draw_table(
             font_options: font_options.clone(),
         };
         draw_string(&year, layer, fonts, inputs)?;
-        let month_value = entry.month.unwrap_or_default().to_string();
+        let month_value: String = if let Some(month) = entry.month {
+            month.to_string()
+        } else {
+            "".to_owned()
+        };
         let month_offset = if month_value.len() > 1 {
             font_size_mm / 3.0_f64
         } else {
