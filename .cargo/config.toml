@@ -1,2 +1,5 @@
+[alias]
+ship = "build --release"
+
 [build]
 rustflags = ["-C", "target-cpu=native"]
