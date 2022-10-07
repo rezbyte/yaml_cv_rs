@@ -1,7 +1,8 @@
 //! Creates the CV in a PDF file.
 
 use crate::style::command::{
-    Box, EducationExperience, HistoryPosition, Line, Lines, MultiLines, Photo, Text, TextBox,
+    Box, EducationExperience, History, HistoryPosition, Line, Lines, MultiLines, Photo, Text,
+    TextBox,
 };
 use crate::style::core::{
     FontOptions, LineOptions, LineStyle, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
@@ -280,7 +281,7 @@ fn draw_lines(lines: &Lines, layer: &PdfLayerReference) -> Result<()> {
 }
 
 fn draw_table(
-    header: &Text,
+    header: Option<&Text>,
     table: &[Entry],
     positions: &HistoryPosition,
     font_options: &FontOptions,
@@ -288,8 +289,11 @@ fn draw_table(
     fonts: &FontMap<'_>,
     inputs: &YAMLArgs,
 ) -> Result<Mm> {
-    draw_string(header, layer, fonts, inputs)?;
-    let mut final_y = header.position.y - positions.padding;
+    let mut final_y = positions.y + positions.padding;
+    if let Some(header_ref) = header {
+        draw_string(header_ref, layer, fonts, inputs)?;
+        final_y = header_ref.position.y - positions.padding;
+    }
     let font_size_mm = font_size_to_mm(font_options.font_size);
     for entry in table.iter() {
         let year = Text {
@@ -346,7 +350,7 @@ fn draw_education_experience(
         font_options: education_experience.font_options.clone(),
     };
     let current_y = draw_table(
-        &education_header,
+        Some(&education_header),
         &inputs.education,
         &education_experience.positions,
         &education_experience.font_options,
@@ -363,10 +367,39 @@ fn draw_education_experience(
         font_options: education_experience.font_options.clone(),
     };
     draw_table(
-        &experience_header,
+        Some(&experience_header),
         &inputs.experience,
         &education_experience.positions,
         &education_experience.font_options,
+        layer,
+        fonts,
+        inputs,
+    )?;
+    Ok(())
+}
+
+fn handle_history_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a Vec<Entry>> {
+    match value.as_str() {
+        "$awards" => Ok(&inputs.awards),
+        "$education" => Ok(&inputs.education),
+        "$experience" => Ok(&inputs.experience),
+        "$licences" => Ok(&inputs.licences),
+        _ => Err(anyhow!("Unkown value: {}", value)),
+    }
+}
+
+#[allow(unused_results)]
+fn draw_history(
+    history: &History,
+    layer: &PdfLayerReference,
+    fonts: &FontMap<'_>,
+    inputs: &YAMLArgs,
+) -> Result<()> {
+    draw_table(
+        None,
+        handle_history_value(&history.value, inputs)?,
+        &history.positions,
+        &history.font_options,
         layer,
         fonts,
         inputs,
@@ -394,7 +427,7 @@ pub(crate) fn make(
             Command::MultiLines(multilines) => draw_multilines(&multilines, &current_layer),
             Command::YMBox(ymbox) => println!("The YM box '{}' was found!", ymbox),
             Command::MiscBox(miscbox) => println!("The misc box '{}' was found!", miscbox),
-            Command::History(history) => println!("The history '{}' was found!", history),
+            Command::History(history) => draw_history(&history, &current_layer, &fonts, inputs)?,
             Command::EducationExperience(education_experience) => {
                 draw_education_experience(&education_experience, &current_layer, &fonts, inputs)?;
             }
