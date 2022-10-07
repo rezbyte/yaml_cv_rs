@@ -9,16 +9,20 @@ use crate::style::core::{
 };
 use crate::style::Command;
 use crate::yaml::{Entry, YAMLArgs};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use printpdf::image_crate::codecs::jpeg::JpegDecoder;
 use printpdf::{
-    Image, ImageTransform, IndirectFontRef, LineDashPattern, Mm, PdfDocument, PdfDocumentReference,
-    PdfLayerReference, Point as PtPoint, Pt,
+    Image, ImageTransform, LineDashPattern, Mm, PdfDocument, PdfDocumentReference,
+    PdfLayerReference, Point as PtPoint,
 };
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
+
+use self::font::{font_size_to_mm, get_fonts, handle_font, FontMap};
+use self::value::{handle_history_value, handle_value};
+mod font;
+mod value;
 
 const MARGIN: Mm = Mm(12.7);
 const MARGIN_AS_POINT: Point = Point {
@@ -28,68 +32,6 @@ const MARGIN_AS_POINT: Point = Point {
 const A4_WIDTH: f64 = 210.0_f64;
 const A4_HEIGHT: f64 = 297.0_f64;
 const DPI: f64 = 75.0_f64;
-
-type FontMap<'a> = HashMap<&'a str, IndirectFontRef>;
-#[allow(unused_results)]
-fn get_fonts<'a>(doc: &PdfDocumentReference) -> Result<FontMap<'a>> {
-    let mut fonts = HashMap::new();
-    fonts.insert(
-        "mincho",
-        doc.add_external_font(File::open("fonts/ipaexm.ttf")?)?,
-    );
-    fonts.insert(
-        "gothic",
-        doc.add_external_font(File::open("fonts/ipaexg.ttf")?)?,
-    );
-    Ok(fonts)
-}
-
-fn handle_font<'a>(name: &'a String, fonts: &'a FontMap<'a>) -> Result<&'a IndirectFontRef> {
-    if let Some(font) = fonts.get(name.as_str()) {
-        Ok(font)
-    } else {
-        Err(anyhow!("Failed to fetch font: {}", name))
-    }
-}
-
-fn font_size_to_mm(font_size: Option<f64>) -> Mm {
-    let font_size = font_size.unwrap_or(DEFAULT_FONT_SIZE);
-    Mm::from(Pt(font_size))
-}
-
-fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a String> {
-    if value.starts_with('$') {
-        match value.as_str() {
-            "$date" => Ok(&inputs.date),
-            "$name_kana" => Ok(&inputs.name_kana),
-            "$name" => Ok(&inputs.name),
-            "$birth_day" => Ok(&inputs.birth_day),
-            "$gender" => Ok(&inputs.gender),
-            "$cell_phone" => Ok(&inputs.cell_phone),
-            "$email" => Ok(&inputs.email),
-            "$address_kana" => Ok(&inputs.address_kana),
-            "$address" => Ok(&inputs.address),
-            "$address_zip" => Ok(&inputs.address_zip),
-            "$tel" => Ok(&inputs.tel),
-            "$fax" => Ok(&inputs.fax),
-            "$address_kana2" => Ok(&inputs.address_kana2),
-            "$address2" => Ok(&inputs.address2),
-            "$address_zip2" => Ok(&inputs.address_zip2),
-            "$tel2" => Ok(&inputs.tel2),
-            "$fax2" => Ok(&inputs.fax2),
-            "$commuting_time" => Ok(&inputs.commuting_time),
-            "$dependents" => Ok(&inputs.dependents),
-            "$spouse" => Ok(&inputs.spouse),
-            "$supporting_spouse" => Ok(&inputs.supporting_spouse),
-            "$hobby" => Ok(&inputs.hobby),
-            "$motivation" => Ok(&inputs.motivation),
-            "$request" => Ok(&inputs.request),
-            _ => Err(anyhow!("Unknown variable: {}", value)),
-        }
-    } else {
-        Ok(value)
-    }
-}
 
 fn handle_line_options(options: &LineOptions, layer: &PdfLayerReference) {
     let width = options.line_width.unwrap_or_default();
@@ -376,16 +318,6 @@ fn draw_education_experience(
         inputs,
     )?;
     Ok(())
-}
-
-fn handle_history_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Result<&'a Vec<Entry>> {
-    match value.as_str() {
-        "$awards" => Ok(&inputs.awards),
-        "$education" => Ok(&inputs.education),
-        "$experience" => Ok(&inputs.experience),
-        "$licences" => Ok(&inputs.licences),
-        _ => Err(anyhow!("Unkown value: {}", value)),
-    }
 }
 
 #[allow(unused_results)]
