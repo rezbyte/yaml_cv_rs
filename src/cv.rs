@@ -5,7 +5,7 @@ use crate::style::command::{
     TextBox,
 };
 use crate::style::core::{
-    FontOptions, LineOptions, LineStyle, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
+    FontOptions, LineOptions, LineStyle, Point, Size, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
 };
 use crate::style::Command;
 use crate::yaml::{Entry, YAMLArgs};
@@ -145,15 +145,20 @@ fn load_image(path: &Path) -> Result<Image> {
     Ok(image)
 }
 
+fn size_to_scale(size: Mm, position: Mm) -> f64 {
+    let final_pos = position + size;
+    final_pos.0 / position.0
+}
+
 fn draw_photo(photo: &Photo, image_path: &Path, layer: &PdfLayerReference) -> Result<()> {
     let image = load_image(image_path)?;
     let transform = ImageTransform {
-        translate_x: Some(photo.position.x + MARGIN),
-        translate_y: Some(photo.position.y + MARGIN),
+        translate_x: Some(photo.position.x + Mm(11.0)),
+        translate_y: Some(photo.position.y - Mm(28.0)),
         rotate: None,
-        scale_x: Some(photo.size.width.0),
-        scale_y: Some(photo.size.height.0),
-        dpi: Some(DPI),
+        scale_x: Some(size_to_scale(photo.size.width, photo.position.x)),
+        scale_y: Some(size_to_scale(photo.size.height, photo.position.y)),
+        dpi: Some(115.0_f64),
     };
     image.add_to_layer(layer.clone(), transform);
     Ok(())
