@@ -281,7 +281,6 @@ fn draw_table(
     Ok(final_y)
 }
 
-#[allow(unused_results)]
 fn draw_education_experience(
     education_experience: &EducationExperience,
     layer: &PdfLayerReference,
@@ -296,7 +295,7 @@ fn draw_education_experience(
         value: "学歴".to_owned(),
         font_options: education_experience.font_options.clone(),
     };
-    let current_y = draw_table(
+    let mut current_y = draw_table(
         Some(&education_header),
         &inputs.education,
         &education_experience.positions,
@@ -313,7 +312,7 @@ fn draw_education_experience(
         value: "職歴".to_owned(),
         font_options: education_experience.font_options.clone(),
     };
-    draw_table(
+    current_y = draw_table(
         Some(&experience_header),
         &inputs.experience,
         &education_experience.positions,
@@ -322,6 +321,15 @@ fn draw_education_experience(
         fonts,
         inputs,
     )?;
+    let ijou = Text {
+        position: Point {
+            x: education_experience.ijo_x,
+            y: current_y,
+        },
+        value: "以上".to_owned(),
+        font_options: education_experience.font_options.clone(),
+    };
+    draw_string(&ijou, layer, fonts, inputs)?;
     Ok(())
 }
 
