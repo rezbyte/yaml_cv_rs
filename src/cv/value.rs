@@ -30,6 +30,10 @@ pub(crate) fn handle_value<'a>(value: &'a String, inputs: &'a YAMLArgs) -> Resul
             "$hobby" => Ok(&inputs.hobby),
             "$motivation" => Ok(&inputs.motivation),
             "$request" => Ok(&inputs.request),
+            "$degree" => Ok(&inputs.degree),
+            "$degree_year" => Ok(&inputs.degree_year),
+            "$degree_affiliation" => Ok(&inputs.degree_affiliation),
+            "$thesis_title" => Ok(&inputs.thesis_title),
             _ => Err(anyhow!("Unknown variable: {}", value)),
         }
     } else {
