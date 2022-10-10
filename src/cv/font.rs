@@ -12,11 +12,11 @@ pub(crate) fn get_fonts<'a>(doc: &PdfDocumentReference) -> Result<FontMap<'a>> {
     let mut fonts = HashMap::new();
     fonts.insert(
         "mincho",
-        doc.add_external_font(File::open("fonts/ipaexm.ttf")?)?,
+        doc.add_external_font(File::open("fonts/min.ttf")?)?,
     );
     fonts.insert(
         "gothic",
-        doc.add_external_font(File::open("fonts/ipaexg.ttf")?)?,
+        doc.add_external_font(File::open("fonts/got.ttf")?)?,
     );
     fonts.insert(
         "Times-Roman",
