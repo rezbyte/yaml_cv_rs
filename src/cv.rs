@@ -1,11 +1,11 @@
 //! Creates the CV in a PDF file.
 
 use crate::style::command::{
-    Box, EducationExperience, History, HistoryPosition, Line, Lines, MultiLines, Photo, Text,
+    Box, EducationExperience, History, HistoryPosition, Line, Lines, MiscBox, MultiLines, Photo,
     TextBox,
 };
 use crate::style::core::{
-    FontOptions, LineOptions, LineStyle, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
+    FontOptions, LineOptions, LineStyle, Point, Size, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
 };
 use crate::style::Command;
 use crate::yaml::{Entry, YAMLArgs};
@@ -332,6 +332,82 @@ fn draw_education_experience(
     Ok(())
 }
 
+#[allow(clippy::cast_precision_loss, clippy::as_conversions)]
+fn draw_miscbox(
+    miscbox: &MiscBox,
+    layer: &PdfLayerReference,
+    fonts: &FontMap<'_>,
+    inputs: &YAMLArgs,
+) -> Result<()> {
+    let name_length: f64 = miscbox.title.len() as f64;
+    let namepos = Mm(88.5_f64 - (name_length * 0.6_f64));
+    draw_string(
+        &Text {
+            position: Point {
+                x: namepos,
+                y: miscbox.y + miscbox.height - Mm(2.0),
+            },
+            value: miscbox.title.clone(),
+            font_options: FontOptions {
+                font_size: Some(9.0_f64),
+                font_face: Some(DEFAULT_FONT_FACE.to_owned()),
+            },
+        },
+        layer,
+        fonts,
+        inputs,
+    )?;
+    draw_line(
+        &Line {
+            start_position: Point {
+                x: Mm(0.0),
+                y: miscbox.y + miscbox.height - Mm(7.0),
+            },
+            end_position: Point {
+                x: Mm(177.0),
+                y: Mm(0.0),
+            },
+            line_options: LineOptions::default(),
+        },
+        layer,
+    );
+    draw_textbox(
+        &TextBox {
+            position: Point {
+                x: Mm(2.0),
+                y: miscbox.y + miscbox.height - Mm(9.0),
+            },
+            size: Size {
+                width: Mm(177.0),
+                height: miscbox.height - Mm(9.0),
+            },
+            value: miscbox.value.clone(),
+            font_options: miscbox.font_options.clone(),
+        },
+        layer,
+        fonts,
+        inputs,
+    )?;
+    draw_box(
+        &Box {
+            position: Point {
+                x: Mm(0.0),
+                y: miscbox.y,
+            },
+            size: Size {
+                width: Mm(177.0),
+                height: miscbox.height,
+            },
+            line_options: LineOptions {
+                line_width: Some(2.0),
+                line_style: None,
+            },
+        },
+        layer,
+    );
+    Ok(())
+}
+
 #[allow(unused_results)]
 fn draw_history(
     history: &History,
@@ -370,7 +446,7 @@ pub(crate) fn make(
             Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &fonts, inputs)?,
             Command::MultiLines(multilines) => draw_multilines(&multilines, &current_layer),
             Command::YMBox(ymbox) => println!("The YM box '{}' was found!", ymbox),
-            Command::MiscBox(miscbox) => println!("The misc box '{}' was found!", miscbox),
+            Command::MiscBox(miscbox) => draw_miscbox(&miscbox, &current_layer, &fonts, inputs)?,
             Command::History(history) => draw_history(&history, &current_layer, &fonts, inputs)?,
             Command::EducationExperience(education_experience) => {
                 draw_education_experience(&education_experience, &current_layer, &fonts, inputs)?;

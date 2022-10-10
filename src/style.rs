@@ -243,6 +243,7 @@ fn parse_miscbox(parameters: &[&str], line_number: usize) -> Result<MiscBox> {
         y: parse_size(raw_y)?,
         height: parse_size(raw_height)?,
         value: raw_value.to_owned(),
+        font_options: parse_font_options(parameters)?,
     })
 }
 
