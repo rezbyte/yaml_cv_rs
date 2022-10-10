@@ -5,7 +5,7 @@ use crate::style::command::{
     TextBox,
 };
 use crate::style::core::{
-    FontOptions, LineOptions, LineStyle, Point, Size, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
+    FontOptions, LineOptions, LineStyle, Point, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
 };
 use crate::style::Command;
 use crate::yaml::{Entry, YAMLArgs};
