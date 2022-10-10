@@ -2,7 +2,7 @@
 
 use crate::style::command::{
     Box, EducationExperience, History, HistoryPosition, Line, Lines, MiscBox, MultiLines, Photo,
-    TextBox,
+    Text, TextBox, YMBox,
 };
 use crate::style::core::{
     FontOptions, LineOptions, LineStyle, Point, Size, DEFAULT_FONT_FACE, DEFAULT_FONT_SIZE,
@@ -194,6 +194,150 @@ fn draw_multilines(multilines: &MultiLines, layer: &PdfLayerReference) {
         draw_line(&line, layer);
         pos += multilines.position_offset;
     }
+}
+
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::as_conversions,
+    clippy::too_many_lines
+)]
+fn draw_ymbox(
+    ymbox: &YMBox,
+    layer: &PdfLayerReference,
+    fonts: &FontMap<'_>,
+    inputs: &YAMLArgs,
+) -> Result<()> {
+    let sy = 7.0_f64;
+    let num: Mm = Mm(ymbox.num.into());
+    let dy: Mm = (num + Mm(1.0_f64)) * sy;
+    let title_length: f64 = ymbox.title.len() as f64;
+    let namepos = Mm(104.0 - title_length * 1.7);
+    draw_box(
+        &Box {
+            position: Point {
+                x: Mm(0.0),
+                y: ymbox.height,
+            },
+            size: Size {
+                width: Mm(177.0),
+                height: dy,
+            },
+            line_options: LineOptions {
+                line_width: Some(2.0),
+                line_style: None,
+            },
+        },
+        layer,
+    );
+    draw_line(
+        &Line {
+            start_position: Point {
+                x: Mm(19.0),
+                y: ymbox.height + dy,
+            },
+            end_position: Point {
+                x: Mm(0.0),
+                y: Mm(-dy.0),
+            },
+            line_options: LineOptions {
+                line_width: None,
+                line_style: Some(LineStyle::Dashed),
+            },
+        },
+        layer,
+    );
+    draw_line(
+        &Line {
+            start_position: Point {
+                x: Mm(31.0),
+                y: ymbox.height + dy,
+            },
+            end_position: Point {
+                x: Mm(0.0),
+                y: Mm(-dy.0),
+            },
+            line_options: LineOptions::default(),
+        },
+        layer,
+    );
+    draw_multilines(
+        &MultiLines {
+            start_position: Point {
+                x: Mm(0.0),
+                y: ymbox.height + dy - Mm(sy),
+            },
+            direction: Point {
+                x: Mm(177.0),
+                y: Mm(0.0),
+            },
+            stroke_number: ymbox.num,
+            position_offset: Point {
+                x: Mm(0.0),
+                y: Mm(-7.0),
+            },
+        },
+        layer,
+    );
+    draw_history(
+        &History {
+            positions: HistoryPosition {
+                y: ymbox.height + dy - Mm(sy) - Mm(2.0),
+                year_x: Mm(3.0),
+                month_x: Mm(24.0),
+                value_x: Mm(35.0),
+                padding: Mm(-7.0),
+            },
+            value: ymbox.value.clone(),
+            font_options: ymbox.font_options.clone(),
+        },
+        layer,
+        fonts,
+        inputs,
+    )?;
+    let font_size_nine = FontOptions {
+        font_size: Some(9.0_f64),
+        font_face: Some("mincho".to_owned()),
+    };
+    draw_string(
+        &Text {
+            position: Point {
+                x: Mm(8.0),
+                y: ymbox.height + dy - Mm(2.0),
+            },
+            value: "年".to_owned(),
+            font_options: font_size_nine.clone(),
+        },
+        layer,
+        fonts,
+        inputs,
+    )?;
+    draw_string(
+        &Text {
+            position: Point {
+                x: Mm(24.0),
+                y: ymbox.height + dy - Mm(2.0),
+            },
+            value: "月".to_owned(),
+            font_options: font_size_nine.clone(),
+        },
+        layer,
+        fonts,
+        inputs,
+    )?;
+    draw_string(
+        &Text {
+            position: Point {
+                x: namepos,
+                y: ymbox.height + dy - Mm(2.0),
+            },
+            value: ymbox.title.clone(),
+            font_options: font_size_nine,
+        },
+        layer,
+        fonts,
+        inputs,
+    )?;
+    Ok(())
 }
 
 fn draw_lines(lines: &Lines, layer: &PdfLayerReference) -> Result<()> {
@@ -445,7 +589,7 @@ pub(crate) fn make(
             Command::NewPage => current_layer = new_page(&doc),
             Command::TextBox(textbox) => draw_textbox(&textbox, &current_layer, &fonts, inputs)?,
             Command::MultiLines(multilines) => draw_multilines(&multilines, &current_layer),
-            Command::YMBox(ymbox) => println!("The YM box '{}' was found!", ymbox),
+            Command::YMBox(ymbox) => draw_ymbox(&ymbox, &current_layer, &fonts, inputs)?,
             Command::MiscBox(miscbox) => draw_miscbox(&miscbox, &current_layer, &fonts, inputs)?,
             Command::History(history) => draw_history(&history, &current_layer, &fonts, inputs)?,
             Command::EducationExperience(education_experience) => {

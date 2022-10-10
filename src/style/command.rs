@@ -110,14 +110,15 @@ pub(crate) struct YMBox {
     pub(crate) height: Mm,
     pub(crate) num: u32,
     pub(crate) value: String,
+    pub(crate) font_options: FontOptions,
 }
 
 impl Display for YMBox {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(
             f,
-            "({}, {}, {}, {})",
-            self.title, self.height.0, self.num, self.value,
+            "({}, {}, {}, {}, {})",
+            self.title, self.height.0, self.num, self.value, self.font_options,
         )
     }
 }

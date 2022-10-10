@@ -230,6 +230,7 @@ fn parse_ymbox(parameters: &[&str], line_number: usize) -> Result<YMBox> {
         height: parse_size(raw_height)?,
         num: raw_num.parse::<u32>()?,
         value: raw_value.to_owned(),
+        font_options: parse_font_options(parameters)?,
     })
 }
 
