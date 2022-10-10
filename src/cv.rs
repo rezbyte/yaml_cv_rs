@@ -31,7 +31,6 @@ const MARGIN_AS_POINT: Point = Point {
 };
 const A4_WIDTH: f64 = 210.0_f64;
 const A4_HEIGHT: f64 = 297.0_f64;
-const DPI: f64 = 75.0_f64;
 
 fn handle_line_options(options: &LineOptions, layer: &PdfLayerReference) {
     let width = options.line_width.unwrap_or_default();

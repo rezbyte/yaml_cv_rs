@@ -29,10 +29,25 @@ fn handle_missing<T>(
     expression.expect(&message)
 }
 
-fn parse_mm(raw_mm: &str) -> Result<Mm, ParseFloatError> {
-    let mm_number = raw_mm.trim_end_matches("mm");
-    let mm_as_float: f64 = mm_number.parse::<f64>()?;
-    Ok(Mm(mm_as_float))
+fn parse_size(raw_size: &str) -> Result<Mm, ParseFloatError> {
+    let len = raw_size.len();
+    let prefix = &raw_size.get(len - 2..);
+    match prefix {
+        Some("mm") => {
+            let mm_number = raw_size.trim_end_matches("mm");
+            let mm_as_float: f64 = mm_number.parse::<f64>()?;
+            Ok(Mm(mm_as_float))
+        }
+        Some("cm") => {
+            let cm_number = raw_size.trim_end_matches("cm");
+            let cm_as_float: f64 = cm_number.parse::<f64>()?;
+            Ok(Mm(cm_as_float * 10.0_f64))
+        }
+        _ => {
+            let size_as_float: f64 = raw_size.parse::<f64>()?;
+            Ok(Mm(size_as_float))
+        }
+    }
 }
 
 fn parse_option<T: std::str::FromStr>(name: &str, raw_option: &str) -> Result<T, T::Err> {
@@ -83,8 +98,8 @@ fn parse_string(parameters: &[&str], line_number: usize) -> Result<Text> {
     let raw_y = *handle_missing(parameters.get(2), "y", "string", line_number);
     let raw_value = *handle_missing(parameters.get(3), "value", "string", line_number);
     let position = Point {
-        x: parse_mm(raw_x)?,
-        y: parse_mm(raw_y)?,
+        x: parse_size(raw_x)?,
+        y: parse_size(raw_y)?,
     };
     Ok(Text {
         position,
@@ -99,12 +114,12 @@ fn parse_line(parameters: &[&str], line_number: usize) -> Result<Line> {
     let raw_ending_x = *handle_missing(parameters.get(3), "x2", "line", line_number);
     let raw_ending_y = *handle_missing(parameters.get(4), "y2", "line", line_number);
     let start_position = Point {
-        x: parse_mm(raw_starting_x)?,
-        y: parse_mm(raw_starting_y)?,
+        x: parse_size(raw_starting_x)?,
+        y: parse_size(raw_starting_y)?,
     };
     let end_position = Point {
-        x: parse_mm(raw_ending_x)?,
-        y: parse_mm(raw_ending_y)?,
+        x: parse_size(raw_ending_x)?,
+        y: parse_size(raw_ending_y)?,
     };
     Ok(Line {
         start_position,
@@ -119,12 +134,12 @@ fn parse_box(parameters: &[&str], line_number: usize) -> Result<command::Box> {
     let raw_width = *handle_missing(parameters.get(3), "width", "box", line_number);
     let raw_height = *handle_missing(parameters.get(4), "height", "box", line_number);
     let position = Point {
-        x: parse_mm(raw_pos_x)?,
-        y: parse_mm(raw_pos_y)?,
+        x: parse_size(raw_pos_x)?,
+        y: parse_size(raw_pos_y)?,
     };
     let size = Size {
-        width: parse_mm(raw_width)?,
-        height: parse_mm(raw_height)?,
+        width: parse_size(raw_width)?,
+        height: parse_size(raw_height)?,
     };
     Ok(command::Box {
         position,
@@ -139,12 +154,12 @@ fn parse_photo(parameters: &[&str], line_number: usize) -> Result<Photo, ParseFl
     let raw_width = *handle_missing(parameters.get(3), "width", "photo", line_number);
     let raw_height = *handle_missing(parameters.get(4), "height", "photo", line_number);
     let position = Point {
-        x: parse_mm(raw_pos_x)?,
-        y: parse_mm(raw_pos_y)?,
+        x: parse_size(raw_pos_x)?,
+        y: parse_size(raw_pos_y)?,
     };
     let size = Size {
-        width: parse_mm(raw_width)?,
-        height: parse_mm(raw_height)?,
+        width: parse_size(raw_width)?,
+        height: parse_size(raw_height)?,
     };
     Ok(Photo { position, size })
 }
@@ -156,12 +171,12 @@ fn parse_textbox(parameters: &[&str], line_number: usize) -> Result<TextBox> {
     let raw_height = *handle_missing(parameters.get(4), "height", "text box", line_number);
     let raw_value = *handle_missing(parameters.get(5), "value", "text box", line_number);
     let position = Point {
-        x: parse_mm(raw_pos_x)?,
-        y: parse_mm(raw_pos_y)?,
+        x: parse_size(raw_pos_x)?,
+        y: parse_size(raw_pos_y)?,
     };
     let size = Size {
-        width: parse_mm(raw_width)?,
-        height: parse_mm(raw_height)?,
+        width: parse_size(raw_width)?,
+        height: parse_size(raw_height)?,
     };
     Ok(TextBox {
         position,
@@ -185,17 +200,17 @@ fn parse_multilines(parameters: &[&str], line_number: usize) -> Result<MultiLine
     let raw_offset_x = *handle_missing(parameters.get(6), "sx", "multi-lines", line_number);
     let raw_offset_y = *handle_missing(parameters.get(7), "sy", "multi-lines", line_number);
     let start_position = Point {
-        x: parse_mm(raw_pos_x)?,
-        y: parse_mm(raw_pos_y)?,
+        x: parse_size(raw_pos_x)?,
+        y: parse_size(raw_pos_y)?,
     };
     let d_position = Point {
-        x: parse_mm(raw_direction_x)?,
-        y: parse_mm(raw_direction_y)?,
+        x: parse_size(raw_direction_x)?,
+        y: parse_size(raw_direction_y)?,
     };
     let stroke_number: u32 = raw_stroke_num.parse::<u32>()?;
     let s_position = Point {
-        x: parse_mm(raw_offset_x)?,
-        y: parse_mm(raw_offset_y)?,
+        x: parse_size(raw_offset_x)?,
+        y: parse_size(raw_offset_y)?,
     };
     Ok(MultiLines {
         start_position,
@@ -212,7 +227,7 @@ fn parse_ymbox(parameters: &[&str], line_number: usize) -> Result<YMBox> {
     let raw_value = *handle_missing(parameters.get(4), "value", "ym box", line_number);
     Ok(YMBox {
         title: raw_title.to_owned(),
-        height: parse_mm(raw_height)?,
+        height: parse_size(raw_height)?,
         num: raw_num.parse::<u32>()?,
         value: raw_value.to_owned(),
     })
@@ -225,8 +240,8 @@ fn parse_miscbox(parameters: &[&str], line_number: usize) -> Result<MiscBox> {
     let raw_value = *handle_missing(parameters.get(4), "value", "misc box", line_number);
     Ok(MiscBox {
         title: raw_title.to_owned(),
-        y: parse_mm(raw_y)?,
-        height: parse_mm(raw_height)?,
+        y: parse_size(raw_y)?,
+        height: parse_size(raw_height)?,
         value: raw_value.to_owned(),
     })
 }
@@ -241,11 +256,11 @@ fn parse_history(parameters: &[&str], line_number: usize) -> Result<History> {
 
     Ok(History {
         positions: HistoryPosition {
-            y: parse_mm(raw_y)?,
-            year_x: parse_mm(raw_year_x)?,
-            month_x: parse_mm(raw_month_x)?,
-            value_x: parse_mm(raw_value_x)?,
-            padding: parse_mm(raw_padding)?,
+            y: parse_size(raw_y)?,
+            year_x: parse_size(raw_year_x)?,
+            month_x: parse_size(raw_month_x)?,
+            value_x: parse_size(raw_value_x)?,
+            padding: parse_size(raw_padding)?,
         },
         value: raw_value.to_owned(),
         font_options: parse_font_options(parameters)?,
@@ -266,14 +281,14 @@ fn parse_education_experience(
 
     Ok(EducationExperience {
         positions: HistoryPosition {
-            y: parse_mm(raw_y)?,
-            year_x: parse_mm(raw_year_x)?,
-            month_x: parse_mm(raw_month_x)?,
-            value_x: parse_mm(raw_value_x)?,
-            padding: parse_mm(raw_padding)?,
+            y: parse_size(raw_y)?,
+            year_x: parse_size(raw_year_x)?,
+            month_x: parse_size(raw_month_x)?,
+            value_x: parse_size(raw_value_x)?,
+            padding: parse_size(raw_padding)?,
         },
-        caption_x: parse_mm(raw_caption_x)?,
-        ijo_x: parse_mm(raw_ijo_x)?,
+        caption_x: parse_size(raw_caption_x)?,
+        ijo_x: parse_size(raw_ijo_x)?,
         font_options: parse_font_options(parameters)?,
     })
 }
@@ -288,8 +303,8 @@ fn parse_lines(parameters: &[&str], line_number: usize) -> Result<Lines> {
             break;
         }
         positions.push(Point {
-            x: parse_mm(raw_x)?,
-            y: parse_mm(raw_y)?,
+            x: parse_size(raw_x)?,
+            y: parse_size(raw_y)?,
         });
         i += 2;
     }
