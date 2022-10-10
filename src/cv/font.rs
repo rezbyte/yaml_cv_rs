@@ -2,7 +2,7 @@
 
 use crate::style::core::DEFAULT_FONT_SIZE;
 use anyhow::{anyhow, Result};
-use printpdf::{IndirectFontRef, Mm, PdfDocumentReference, Pt};
+use printpdf::{BuiltinFont, IndirectFontRef, Mm, PdfDocumentReference, Pt};
 use std::collections::HashMap;
 use std::fs::File;
 
@@ -17,6 +17,10 @@ pub(crate) fn get_fonts<'a>(doc: &PdfDocumentReference) -> Result<FontMap<'a>> {
     fonts.insert(
         "gothic",
         doc.add_external_font(File::open("fonts/ipaexg.ttf")?)?,
+    );
+    fonts.insert(
+        "Times-Roman",
+        doc.add_builtin_font(BuiltinFont::TimesRoman)?,
     );
     Ok(fonts)
 }
