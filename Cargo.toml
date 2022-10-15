@@ -1,6 +1,6 @@
 [package]
 name = "yaml_cv_rs"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["rezbyte"]
 edition = "2021"
 description = "A rust port of kaityo256's yaml_cv."
