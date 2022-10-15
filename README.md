@@ -36,10 +36,6 @@ Then copy the:
 - [Standard](https://github.com/kaityo256/yaml_cv/blob/main/style.txt) or [academic](https://github.com/kaityo256/yaml_cv/blob/main/academic.txt) style files into `target/release`.
 - [Data YAML file](https://github.com/kaityo256/yaml_cv/blob/main/data.yaml) into `target/release`.
 
-Rename the font files as such:
-- ipaexm.tff -> min.tff
-- ipaexg.tff -> got.tff
-
 After that, `yaml_cv_rs` should be ready for use in `target/release`.
 
 ## Usage <a name = "usage"></a>
