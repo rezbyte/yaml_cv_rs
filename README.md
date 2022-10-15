@@ -10,7 +10,7 @@ This my attempt at porting [kaityo256's yaml_cv](https://github.com/kaityo256/ya
 It supports all the style files the original does.
 I wrote this to practice writing in Rust, so I don't intend to maintain this.
 
-It's easier to setup, available as a [single download](https://github.com/rezbyte/yaml_cv_rs/releases).
+It's easier to setup, available as a [download](https://github.com/rezbyte/yaml_cv_rs/releases).
 Runs around twice as fast than the original Ruby script.
 
 ![screenshot1](sample/academic1.jpg)
@@ -40,6 +40,10 @@ After that, `yaml_cv_rs` should be ready for use in `target/release`.
 
 ## Usage <a name = "usage"></a>
 
+First [download the IPA mincho & gothic fonts](https://moji.or.jp/ipafont/ipaex00401/).
+Extract the IPA fonts into `yaml_cv_rs/fonts`.
+
+You can run the program directly with `./yaml_cv_rs`.
 The usage is identical to kaityo256's version.
 
 You can run `yaml_cv_rs --help` to get usage instructions:
