@@ -6,7 +6,7 @@
 + [Usage](#usage)
 
 ## About <a name = "about"></a>
-This my attempt at porting [kaityo256's yaml_cv](https://github.com/kaityo256/yaml_cv) to Rust.
+This is my attempt at porting [kaityo256's yaml_cv](https://github.com/kaityo256/yaml_cv) to Rust.
 It supports all the style files the original does.
 I wrote this to practice writing in Rust, so I don't intend to maintain this.
 
